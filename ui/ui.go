@@ -427,7 +427,7 @@ func populateList(list *tview.List)  {
 func buildHelpView() *tview.Modal {
 	modal := tview.NewModal()
 	modal.SetBorder(true).SetTitle("Help")
-	modal.SetText("F1: Help\n1: Bpf program view\n2: Bpf feature view\n'q'|'Q': Quit")
+	modal.SetText("F1: Help\nCtrl-e: Bpf program view\nCtrl-f: Bpf feature view\n'q'|'Q': Quit")
 	return modal
 }
 

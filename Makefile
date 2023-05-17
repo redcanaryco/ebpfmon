@@ -10,7 +10,7 @@ tool:
 	$(MAKE) -C $(BPFTOOL_SRC)
 	cp $(BPFTOOL_SRC)/bpftool $(OUTPUT)/bpftool
 
-ebpfmon: main.go
+ebpfmon:
 	go build .
 
 # Just cleans the binary
@@ -22,4 +22,4 @@ realclean: clean
 	rm -rf $(OUTPUT)
 	$(MAKE) -C $(BPFTOOL_SRC) clean
 
-.PHONY: clean realclean
+.PHONY: clean realclean ebpfmon
