@@ -1,0 +1,6 @@
+vmlinux.h
+*.swp
+ebpfmon
+bpftool/**
+.output
+log.txt
