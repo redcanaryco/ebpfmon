@@ -8,7 +8,10 @@ monitoring of eBPF programs.
 Right now the only supported way to install ebpfmon is to build it from source.
 
 ## Dependencies
-First make sure to install the following dependencies. These are for bpftool to work.
+First and foremost this tool is written in [Go](https://go.dev/learn/) so you will need to have that installed 
+and in your PATH variable
+
+Next make sure to install the following dependencies. These are for bpftool to work.
 
 Required dependencies for bpftool to work
 - libelf
@@ -27,11 +30,16 @@ $ sudo apt install libelf-dev zlib1g-dev clang llvm binutils-dev
 
 ## Building
 ```bash
-$ git clone --recurse-submodules https://github.com/redcanaryco/ebpfmon && cd ebpfmon
+$ git clone --recurse-submodules https://github.com/redcanaryco/ebpfmon
+$ cd ebpfmon
 ```
 
+or
+
 ```bash
-$ git submodule init --update --recursive
+$ git clone https://github.com/redcanaryco/ebpfmon
+$ cd ebpfmon
+$ git submodule update --init --recursive
 ```
 
 ```bash
