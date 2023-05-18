@@ -1,3 +1,7 @@
+// This is the core code for building the TUI application portion of ebpfmon
+// This page handles building the root application and the pages that are used
+// to display each of the view the app supports. It also handles the global
+// keybindings and the global state of the application
 package ui
 
 import (
@@ -12,7 +16,6 @@ import (
 
 var Programs map[int]utils.BpfProgram
 var BpftoolPath string
-var HavePids bool
 var lock sync.Mutex 
 var previousPage string
 var featureInfo string
@@ -51,61 +54,16 @@ func NewTui(bpftoolPath string) *Tui {
 
 	// Create each page object
 	tui.bpfExplorerView = NewBpfExplorerView(tui)
-	tui.bpfFeatureview = NewBpfFeatureView()
+	tui.bpfFeatureview = NewBpfFeatureView(tui)
 	tui.bpfMapTableView = NewBpfMapTableView()
 	tui.helpview = NewHelpView()
 
 	fmt.Println("Collecting bpf information. This may take a few seconds")
 	updateBpfPrograms()
 
-	// Set up proper tab navigation and global quit key
-	// TODO: We may be able to move this stuff to be local to each page instead of at the app level
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		name, _ := pages.GetFrontPage()
-		if name == "programs" {
-			if event.Key() == tcell.KeyTab {
-				curFocus := app.GetFocus()
-				if curFocus == tui.bpfExplorerView.programList {
-					app.SetFocus(tui.bpfExplorerView.disassembly)
-				} else if curFocus == tui.bpfExplorerView.disassembly {
-					app.SetFocus(tui.bpfExplorerView.bpfInfoView)
-				} else if curFocus == tui.bpfExplorerView.bpfInfoView {
-					app.SetFocus(tui.bpfExplorerView.mapList)
-				} else if curFocus == tui.bpfExplorerView.mapList {
-					app.SetFocus(tui.bpfExplorerView.programList)
-				}
-				return nil
-			} else if event.Key() == tcell.KeyBacktab {
-				curFocus := app.GetFocus()
-				if curFocus == tui.bpfExplorerView.programList {
-					app.SetFocus(tui.bpfExplorerView.mapList)
-				} else if curFocus == tui.bpfExplorerView.disassembly {
-					app.SetFocus(tui.bpfExplorerView.programList)
-				} else if curFocus == tui.bpfExplorerView.bpfInfoView {
-					app.SetFocus(tui.bpfExplorerView.disassembly)
-				} else if curFocus == tui.bpfExplorerView.mapList {
-					app.SetFocus(tui.bpfExplorerView.bpfInfoView)
-				}
-				return nil
-			}
-		} else if name == "features" {
-			if event.Key() == tcell.KeyTab {
-				if tui.bpfFeatureview.flex.GetItem(0).HasFocus() {
-					app.SetFocus(tui.bpfFeatureview.flex.GetItem(1))
-				} else {
-					app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
-				}
-				return nil
-			} else if event.Key() == tcell.KeyBacktab {
-				if tui.bpfFeatureview.flex.GetItem(0).HasFocus() {
-					app.SetFocus(tui.bpfFeatureview.flex.GetItem(1))
-				} else {
-					app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
-				}
-				return nil
-			}
-		}		
-
+	// Set up proper page navigation and global quit key
+	// In page navigation happens in their respective files
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {	
 		// Set up q quit key and page navigation
 		if event.Rune() == 'q' || event.Rune() == 'Q' {
 			app.Stop()
@@ -126,15 +84,6 @@ func NewTui(bpftoolPath string) *Tui {
 			}
 
 			pages.SwitchToPage("features")
-			
-			// Run bpftool feature command and display the output (or stderr on failure)
-			stdout, stderr, err := utils.RunCmd("sudo", BpftoolPath, "feature", "probe")
-			if err != nil {
-				tui.bpfFeatureview.flex.GetItem(1).(*tview.TextView).SetText(string(stderr))
-			} else {
-				featureInfo = string(stdout)
-				tui.bpfFeatureview.flex.GetItem(1).(*tview.TextView).SetText(featureInfo)
-			}
 
 			// Set focus to the input field
 			app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
@@ -153,17 +102,30 @@ func NewTui(bpftoolPath string) *Tui {
 				app.SetFocus(prim)
 			}
 			return nil
-		} 
+		} else if event.Key() == tcell.KeyESC {
+			pages.SwitchToPage(previousPage)
+			_, prim := pages.GetFrontPage()
+			app.SetFocus(prim)
+			return nil
+		}
 		return event
 	})
 	
+	// These are the main pages for the application
 	pages.AddPage("programs", tui.bpfExplorerView.flex, true, true)
 	pages.AddPage("help", tui.helpview.modal, true, false)
 	pages.AddPage("features", tui.bpfFeatureview.flex, true, false)
 	pages.AddPage("maptable", tui.bpfMapTableView.pages, true, false)
+
+	// Set starting page as previous page
 	previousPage = "programs"
+
+	// Set the page view as the root
 	app.SetRoot(pages, true)
-	tui.bpfExplorerView.Update(tui)
+
+	// Start the go routine to update bpf programs and maps
+	go tui.bpfExplorerView.Update(tui)
+
 	return tui
 }
 

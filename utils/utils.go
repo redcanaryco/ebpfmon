@@ -1,3 +1,4 @@
+// Generic utility functions used by other packages
 package utils
 
 import (

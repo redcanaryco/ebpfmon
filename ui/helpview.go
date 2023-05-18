@@ -1,3 +1,4 @@
+// This page is a simple help modal for showing what the keys are for navigating
 package ui
 
 import "github.com/rivo/tview"

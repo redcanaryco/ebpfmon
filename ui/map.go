@@ -1,3 +1,6 @@
+// This page handles the the view for looking at the map entries of a map. It
+// allows the user to select a map and then view the entries in that map. The
+// user can also edit the map entries from this view.
 package ui
 
 import (

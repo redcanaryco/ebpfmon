@@ -1,5 +1,5 @@
 // Description: Main file for the ebpfmon tool
-// Author: Dave Bogle
+// Author: research@redcanary.com
 //
 // This tool is used to visualize the bpf programs and maps that are loaded
 // on a system. It uses the bpftool binary to get the information about the
@@ -21,7 +21,6 @@ import (
 
 
 var BpftoolPath string
-var HavePids bool
 
 type BpftoolVersionInfo struct {
 	Version string `json:"version"`
@@ -37,7 +36,6 @@ type BpftoolVersionInfo struct {
 type Config struct {
 	Version BpftoolVersionInfo
 	BpftoolPath string
-	HavePids bool
 	Verbose bool
 }
 
@@ -104,14 +102,10 @@ func main() {
 		fmt.Println("Failed to parse bpftool version output")
 		return
 	}
-	if versionInfo.Features.Skeletons {
-		HavePids = true
-	}
 
 	config := Config {
 		Version: versionInfo,
 		BpftoolPath: BpftoolPath,
-		HavePids: HavePids,
 		Verbose: *verbose,
 	}
 	utils.BpftoolPath = config.BpftoolPath

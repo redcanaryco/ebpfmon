@@ -1,3 +1,9 @@
+// This is the file for managing the main bpf explorer page. This page is used
+// to display all the bpf programs that are loaded on the system. It also
+// displays the maps that are used by each program. The user can select a
+// program and then see the disassembly of that program. The user can also
+// see the maps that are used by the program. Those maps can be selected by the
+// user which will display the map view/edit page
 package ui
 
 import (
@@ -201,14 +207,23 @@ func updateBpfPrograms() {
 	lock.Unlock()
 }
 
-// Periodically update stuff
-func update(app *tview.Application, b *BpfExplorerView) {
+func NewBpfExplorerView(tui *Tui) *BpfExplorerView {
+	BpfExplorerView := &BpfExplorerView{}
+	BpfExplorerView.buildProgramList()
+	BpfExplorerView.buildMapList(tui)
+	BpfExplorerView.buildDisassemblyView()
+	BpfExplorerView.buildBpfInfoView()
+	BpfExplorerView.buildLayout(tui)
+	return BpfExplorerView
+}
+
+func (b* BpfExplorerView) Update(tui *Tui) {
 	for {
 		time.Sleep(3 * time.Second)
 		updateBpfPrograms()
 		currentSelection := b.programList.GetCurrentItem()
 
-		app.QueueUpdateDraw(func() {
+		tui.App.QueueUpdateDraw(func() {
 			// Remove all the items
 			b.programList.Clear()
 			populateList(b.programList)
@@ -217,21 +232,7 @@ func update(app *tview.Application, b *BpfExplorerView) {
 	}
 }
 
-func NewBpfExplorerView(tui *Tui) *BpfExplorerView {
-	BpfExplorerView := &BpfExplorerView{}
-	BpfExplorerView.buildProgramList()
-	BpfExplorerView.buildMapList(tui)
-	BpfExplorerView.buildDisassemblyView()
-	BpfExplorerView.buildBpfInfoView()
-	BpfExplorerView.buildLayout()
-	return BpfExplorerView
-}
-
-func (b* BpfExplorerView) Update(tui *Tui) {
-	go update(tui.App, b)
-}
-
-func (b *BpfExplorerView) buildLayout() {
+func (b *BpfExplorerView) buildLayout(tui *Tui) {
 	// Arrange the UI elements
 	frame := buildFrame(b.programList)
 	rightFlex := tview.NewFlex().
@@ -253,6 +254,34 @@ func (b *BpfExplorerView) buildLayout() {
 	b.flex = tview.NewFlex()
 	b.flex.SetDirection(tview.FlexRow)
 	b.flex.AddItem(frame, 0, 1, true).AddItem(aflex, 0, 2, false)
+	b.flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			curFocus := tui.App.GetFocus()
+			if curFocus == b.programList {
+				tui.App.SetFocus(b.disassembly)
+			} else if curFocus == b.disassembly {
+				tui.App.SetFocus(b.bpfInfoView)
+			} else if curFocus == b.bpfInfoView {
+				tui.App.SetFocus(b.mapList)
+			} else if curFocus == b.mapList {
+				tui.App.SetFocus(b.programList)
+			}
+			return nil
+		} else if event.Key() == tcell.KeyBacktab {
+			curFocus := tui.App.GetFocus()
+			if curFocus == b.programList {
+				tui.App.SetFocus(b.mapList)
+			} else if curFocus == b.disassembly {
+				tui.App.SetFocus(b.programList)
+			} else if curFocus == b.bpfInfoView {
+				tui.App.SetFocus(b.disassembly)
+			} else if curFocus == b.mapList {
+				tui.App.SetFocus(b.bpfInfoView)
+			}
+			return nil
+		}
+		return event
+	})
 }
 
 func (b *BpfExplorerView) buildProgramList() {

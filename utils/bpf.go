@@ -1,3 +1,6 @@
+// The utils/bpf.go file is for implementing code that handles some of the
+// specifics for getting information about bpf programs and maps. This includes
+// parsing the output of the bpftool binary.
 package utils
 
 import (
