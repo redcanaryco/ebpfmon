@@ -1,4 +1,4 @@
-// Description: Main file for the bpfviz tool
+// Description: Main file for the ebpfmon tool
 // Author: Dave Bogle
 //
 // This tool is used to visualize the bpf programs and maps that are loaded
