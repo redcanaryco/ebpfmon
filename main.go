@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"log"
 )
 
 
@@ -37,6 +38,7 @@ type Config struct {
 	Version BpftoolVersionInfo
 	BpftoolPath string
 	Verbose bool
+	Logger *log.Logger
 }
 
 func main() {
@@ -45,6 +47,7 @@ func main() {
 	help := flag.Bool("help", false, "Display help")
 	verbose := flag.Bool("verbose", false, "Verbose output")
 	version := flag.Bool("version", false, "Display version information")
+	logFileArg := flag.String("logfile", "", "Path to log file. Defaults to log.txt")
 	bpftool_path := flag.String("bpftool", "", "Path to bpftool binary. Defaults to the bpftool located in PATH")
 
 	flag.Parse()
@@ -55,6 +58,7 @@ func main() {
 		return
 	}
 
+
 	if *verbose {
 		// TODO: Set verbose output
 	}
@@ -63,6 +67,30 @@ func main() {
 		fmt.Println("bpfmon version 0.1")
 		return
 	}
+
+	var logFile *os.File
+	var logpath string
+	if *logFileArg == "" {
+		logpath, err = filepath.Abs("./log.txt")
+		if err != nil {
+			fmt.Println("Failed to find log file")
+			return
+		}
+	} else {
+		logpath, err = filepath.Abs(*logFileArg)
+		if err != nil {
+			fmt.Println("Failed to find log file")
+			return
+		}
+	}
+	logFile, err = os.OpenFile(logpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Failed to open log file %s\n%v", logpath, err)
+		return
+	}
+	defer logFile.Close()
+	logger := log.New(logFile, "", log.LstdFlags|log.Lshortfile)
+
 
 	// Set the global bpftool path variable. It can be set by the command line
 	// argument or by the BPFTOOL_PATH environment variable. It defaults to
@@ -107,9 +135,11 @@ func main() {
 		Version: versionInfo,
 		BpftoolPath: BpftoolPath,
 		Verbose: *verbose,
+		Logger: logger,
 	}
 	utils.BpftoolPath = config.BpftoolPath
-	app := ui.NewTui(config.BpftoolPath)
+	app := ui.NewTui(config.BpftoolPath, logger)
+	logger.Println("Starting ebpfmon")
 
 	// Run the app
 	if err := app.App.Run(); err != nil {

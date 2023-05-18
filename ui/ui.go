@@ -7,8 +7,8 @@ package ui
 import (
 	"ebpfmon/utils"
 	"fmt"
-	"sort"
 	"sync"
+	"log"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -19,6 +19,7 @@ var BpftoolPath string
 var lock sync.Mutex 
 var previousPage string
 var featureInfo string
+var logger *log.Logger
 
 type FlowDissectorInfo struct {
 	DevName string `json:"devname"`
@@ -40,10 +41,18 @@ type Tui struct {
 	bpfExplorerView *BpfExplorerView
 	bpfMapTableView *BpfMapTableView
 	bpfFeatureview *BpfFeatureView
-	helpview *HelpView
+	helpView *HelpView
+	errorView *ErrorView
 }
 
-func NewTui(bpftoolPath string) *Tui {
+func (t *Tui) DisplayError(err string) {
+	t.errorView.SetError(err)
+	previousPage, _ = t.pages.GetFrontPage()
+	t.pages.SwitchToPage("error")
+}
+
+func NewTui(bpftoolPath string, l *log.Logger) *Tui {
+	logger = l
 	Programs = map[int]utils.BpfProgram{}
 	BpftoolPath = bpftoolPath
 
@@ -56,10 +65,11 @@ func NewTui(bpftoolPath string) *Tui {
 	tui.bpfExplorerView = NewBpfExplorerView(tui)
 	tui.bpfFeatureview = NewBpfFeatureView(tui)
 	tui.bpfMapTableView = NewBpfMapTableView()
-	tui.helpview = NewHelpView()
+	tui.helpView = NewHelpView()
+	tui.errorView = NewErrorView()
 
 	fmt.Println("Collecting bpf information. This may take a few seconds")
-	updateBpfPrograms()
+	updateBpfPrograms(tui)
 
 	// Set up proper page navigation and global quit key
 	// In page navigation happens in their respective files
@@ -113,9 +123,10 @@ func NewTui(bpftoolPath string) *Tui {
 	
 	// These are the main pages for the application
 	pages.AddPage("programs", tui.bpfExplorerView.flex, true, true)
-	pages.AddPage("help", tui.helpview.modal, true, false)
+	pages.AddPage("help", tui.helpView.modal, true, false)
 	pages.AddPage("features", tui.bpfFeatureview.flex, true, false)
 	pages.AddPage("maptable", tui.bpfMapTableView.pages, true, false)
+	pages.AddPage("error", tui.errorView.modal, true, false)
 
 	// Set starting page as previous page
 	previousPage = "programs"
@@ -132,17 +143,4 @@ func NewTui(bpftoolPath string) *Tui {
 func NewApp() *tview.Application {
 	app := tview.NewApplication()
 	return app
-}
-
-// Populate a tview.List with the output of GetBpfPrograms
-func populateList(list *tview.List)  {
-	keys := make([]int, 0, len(Programs))
-    for k := range Programs{
-        keys = append(keys, k)
-    }
-    sort.Ints(keys)
- 
-    for _, k := range keys {
-		list.AddItem(Programs[k].String(), "", 0, nil)
-    }
 }

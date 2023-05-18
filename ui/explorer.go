@@ -10,6 +10,7 @@ import (
 	"ebpfmon/utils"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -66,11 +67,11 @@ func applyNetData() {
 	netInfo := []NetInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "net", "show")
 	if err != nil {
-		return 
+		logger.Printf("Error running `sudo %s -j net show`: %s\n", BpftoolPath, err)
 	}
 	err = json.Unmarshal(stdout, &netInfo)
 	if err != nil {
-		return
+		logger.Printf("Error decoding json output of `sudo %s -j net show`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range netInfo {
@@ -103,11 +104,11 @@ func applyCgroupData() {
 	cgroupInfo := []CgroupInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "cgroup", "tree")
 	if err != nil {
-		return 
+		logger.Printf("Error running `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
 	}
 	err = json.Unmarshal(stdout, &cgroupInfo)
 	if err != nil {
-		return
+		logger.Printf("Error decoding json output of `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range cgroupInfo {
@@ -136,16 +137,14 @@ func enrichPrograms() {
 // This runs as a go routine
 func applyPerfEventData() {
 	perfInfo := []PerfInfo{}
-	stdout, stderr, err := utils.RunCmd("sudo", BpftoolPath, "-j", "perf", "list")
+	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "perf", "list")
 	if err != nil {
-		fmt.Println("Failed to run `sudo bpftool perf list`")
-		fmt.Println(string(stderr))
-		panic(err)
+		logger.Printf("Error running `sudo %s -j perf list`: %s\n", BpftoolPath, err)
 	}
 
 	err = json.Unmarshal(stdout, &perfInfo)
 	if err != nil {
-		panic(err)
+		logger.Printf("Error decoding json output of `sudo %s -j perf list`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range perfInfo {
@@ -170,7 +169,7 @@ func applyPerfEventData() {
 // Call the bpftool binary to gather the list of available programs
 // and return a list of BpfProgram structs
 // This runs as a go routine and updates the Programs variable
-func updateBpfPrograms() {
+func updateBpfPrograms(tui *Tui) {
 	// I think the bug is here. We need to intelligently update the Programs variable
 	// Use a mutex
 	lock.Lock()
@@ -179,12 +178,11 @@ func updateBpfPrograms() {
 	tmp := []utils.BpfProgram{}
 	stdout, stderr, err := utils.RunCmd("sudo", BpftoolPath, "-j", "prog", "show")
 	if err != nil {
-		fmt.Printf("Failed to run `sudo %s -j prog show`\n%s\n", BpftoolPath, string(stderr))
-		panic(err)
+		tui.DisplayError(fmt.Sprintf("Failed to run `sudo %s -j prog show`\n%s\n", BpftoolPath, string(stderr)))
 	}
 	err = json.Unmarshal(stdout, &tmp)
 	if err != nil {
-		panic(err)
+		tui.DisplayError(fmt.Sprintf("Failed to run `sudo %s -j prog show`\n%s\n", BpftoolPath, string(stderr)))
 	}
 
 	for _, program := range tmp {
@@ -220,7 +218,7 @@ func NewBpfExplorerView(tui *Tui) *BpfExplorerView {
 func (b* BpfExplorerView) Update(tui *Tui) {
 	for {
 		time.Sleep(3 * time.Second)
-		updateBpfPrograms()
+		updateBpfPrograms(tui)
 		currentSelection := b.programList.GetCurrentItem()
 
 		tui.App.QueueUpdateDraw(func() {
@@ -239,12 +237,6 @@ func (b *BpfExplorerView) buildLayout(tui *Tui) {
 		SetDirection(tview.FlexRow).
 		AddItem(b.bpfInfoView, 0, 2, false).
 		AddItem(b.mapList, 0, 1, false)
-
-	// Main flex layout
-	// flex := tview.NewFlex().
-	// 	AddItem(frame, 0, 1, true).
-	// 	AddItem(b.disassembly, 0, 2, false).
-	// 	AddItem(rightFlex, 0, 1, false)
 	
 	// Alternate layout
 	aflex := tview.NewFlex().
@@ -315,7 +307,10 @@ func (b *BpfExplorerView) buildProgramList() {
 
 		// Get the map info for each map used by the selected program
 		if len(selectedProgram.MapIds) > 0 {
-			mapInfo := utils.GetBpfMapInfoByIds(selectedProgram.MapIds)
+			mapInfo, err := utils.GetBpfMapInfoByIds(selectedProgram.MapIds)
+			if err != nil {
+				fmt.Fprintf(b.bpfInfoView, "Failed to get map info: %s\n", err)
+			}
 			for _, map_ := range mapInfo {
 				b.mapList.AddItem(map_.String(), "", 0, nil)
 			}
@@ -383,8 +378,11 @@ func (b *BpfExplorerView) buildMapList(tui *Tui){
 		mapIdInt, _ := strconv.Atoi(mapId)
 
 		// TODO: What is the appropriate way to fail?
-		mapInfo := utils.GetBpfMapInfoByIds([]int{mapIdInt})[0]
-		tui.bpfMapTableView.UpdateMap(mapInfo)
+		mapInfo, err := utils.GetBpfMapInfoByIds([]int{mapIdInt})
+		if err != nil {
+			logger.Printf("Failed to get map info: %s\n", err)
+		}
+		tui.bpfMapTableView.UpdateMap(mapInfo[0])
 
 		tui.pages.SwitchToPage("maptable")
 	})
@@ -410,4 +408,17 @@ func (b *BpfExplorerView) buildDisassemblyView() {
 		SetRegions(true).
 		SetWordWrap(true)
 	b.disassembly.SetBorder(true).SetTitle("Disassembly")
+}
+
+// Populate a tview.List with the output of GetBpfPrograms
+func populateList(list *tview.List)  {
+	keys := make([]int, 0, len(Programs))
+    for k := range Programs{
+        keys = append(keys, k)
+    }
+    sort.Ints(keys)
+ 
+    for _, k := range keys {
+		list.AddItem(Programs[k].String(), "", 0, nil)
+    }
 }

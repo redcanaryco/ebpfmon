@@ -39,9 +39,14 @@ func (b *BpfMapTableView) updateTable() {
 
 // Update Map
 func (b *BpfMapTableView) UpdateMap(m utils.BpfMap) {
+	var err error
 	b.Map = m
-	b.MapEntries = utils.GetBpfMapEntries(b.Map.Id)
-	b.updateTable()
+	b.MapEntries, err = utils.GetBpfMapEntries(b.Map.Id)
+	if err != nil {
+		logger.Printf("Error getting map entries: %v\n", err)
+	} else {
+		b.updateTable()
+	}
 }
 
 func (b *BpfMapTableView) buildMapTableView() {
@@ -81,15 +86,10 @@ func (b *BpfMapTableView) buildMapTableEditForm() {
 		keyText := b.form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
 		valueText := b.form.GetFormItemByLabel("Value").(*tview.InputField).GetText()
 
-		// TODO: Whats the right way to handle an error?
 		cmd := strings.Split("sudo " + utils.BpftoolPath + " map update id " + strconv.Itoa(b.Map.Id) + " key " + cellTextToHexString(keyText) + " value " + cellTextToHexString(valueText), " ")
-		// result := exec.Command("sudo", cmd...)
-			// fmt.Println("Cmd: ", cmd)
 		_, _, err := utils.RunCmd(cmd...)
 		if err != nil {
-			fmt.Printf("Error running bpftool map update: %s\n", err)
-			// fmt.Printf("Stderr: %s\n", stderr)
-			return
+			logger.Printf("Error updating map entry: %v\n", err)
 		}
 
 		// Create new cells so we can update the table
@@ -119,15 +119,13 @@ func (b *BpfMapTableView) buildConfirmModal() {
 				cmd := strings.Split("sudo " + utils.BpftoolPath + " map delete id " + strconv.Itoa(b.Map.Id) + " key " + key, " ")
 				_, _, err := utils.RunCmd(cmd...)
 				if err != nil {
-					fmt.Printf("Error running bpftool map delete: %s\n", err)
-					return
+					logger.Printf("Error deleting map entry: %v\n", err)
 				}
 				b.table.RemoveRow(row)
 			}
 			b.pages.SwitchToPage("table")
 
 		})
-
 }
 
 // Make a new BpfMapTableView. These functions only need to be called once
