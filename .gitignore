@@ -3,3 +3,4 @@ vmlinux.h
 ebpfmon
 bpftool/**
 .output
+log.txt
