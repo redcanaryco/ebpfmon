@@ -64,7 +64,7 @@ func NewTui(bpftoolPath string, l *log.Logger) *Tui {
 	// Create each page object
 	tui.bpfExplorerView = NewBpfExplorerView(tui)
 	tui.bpfFeatureview = NewBpfFeatureView(tui)
-	tui.bpfMapTableView = NewBpfMapTableView()
+	tui.bpfMapTableView = NewBpfMapTableView(tui)
 	tui.helpView = NewHelpView()
 	tui.errorView = NewErrorView()
 
@@ -113,8 +113,11 @@ func NewTui(bpftoolPath string, l *log.Logger) *Tui {
 			}
 			return nil
 		} else if event.Key() == tcell.KeyESC {
+			name, prim := pages.GetFrontPage()
+			if name == "maptable" {
+				return event
+			}
 			pages.SwitchToPage(previousPage)
-			_, prim := pages.GetFrontPage()
 			app.SetFocus(prim)
 			return nil
 		}
