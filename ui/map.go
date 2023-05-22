@@ -45,7 +45,6 @@ type BpfMapTableView struct {
 	MapEntries []utils.BpfMapEntry
 }
 
-// TODO: Need to pad if the length of byte is not big enough for the width
 func asDecimal(width int, endian int, data []byte) string {
 	var result string = ""
 	switch width {
@@ -99,12 +98,11 @@ func asDecimal(width int, endian int, data []byte) string {
 			}
 			break
 	}
-
+	result = strings.Trim(result, " ")
 	return result
 }
 
 // Similar to the asDecimal function except it displays the data as hex
-// TODO: Need to pad if the len of byte is not big enough
 func asHex(width int, endian int, data []byte) string {
 	var result string = ""
 	switch width {
@@ -158,6 +156,8 @@ func asHex(width int, endian int, data []byte) string {
 			}
 			break
 	}
+	result = strings.Trim(result, " ")
+
 	return result
 }
 
@@ -199,17 +199,12 @@ func padBytesEnd(data []byte, width int) []byte {
 }
 
 // Adds padding to the bytes based on endianness
-func padBytes(data []byte, width int, endianness int) []byte {
+func padBytes(data []byte, width int) []byte {
 	if len(data) % width == 0 {
 		return data
 	}
 
-	switch endianness {
-	case Little:
-		return padBytesEnd(data, width)
-	default:
-		return padBytesBeginning(data, width)
-	}
+	return padBytesEnd(data, width)
 }
 
 // Apply a format based on the specified format, width, endianness
@@ -218,7 +213,7 @@ func applyFormat(format int, width int, endianness int, data []byte) string {
 		return ""
 	}
 	
-	data = padBytes(data, width, endianness)
+	data = padBytes(data, width)
 
 	switch format {
 	case Hex:
