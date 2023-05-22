@@ -161,10 +161,12 @@ func asHex(width int, endian int, data []byte) string {
 	return result
 }
 
+// Doesn't change the default formatting of the data
 func asRaw(data []byte) string {
 	return fmt.Sprintf("%v", data)
 }
 
+// Adds some null bytes to the beggining of a slice
 func padBytesBeginning(data []byte, width int) []byte {
 	if len(data) % width == 0 {
 		return data
@@ -180,6 +182,7 @@ func padBytesBeginning(data []byte, width int) []byte {
 	return result
 }
 
+// Add some null bytes to the end of a slice
 func padBytesEnd(data []byte, width int) []byte {
 	if len(data) % width == 0 {
 		return data
@@ -195,6 +198,7 @@ func padBytesEnd(data []byte, width int) []byte {
 	return result
 }
 
+// Adds padding to the bytes based on endianness
 func padBytes(data []byte, width int, endianness int) []byte {
 	if len(data) % width == 0 {
 		return data
@@ -208,6 +212,7 @@ func padBytes(data []byte, width int, endianness int) []byte {
 	}
 }
 
+// Apply a format based on the specified format, width, endianness
 func applyFormat(format int, width int, endianness int, data []byte) string {
 	if len(data) == 0 {
 		return ""
@@ -231,12 +236,10 @@ func (b *BpfMapTableView) updateTable() {
 	b.table.SetCell(0, 0, tview.NewTableCell("Index").SetSelectable(false))
 	b.table.SetCell(0, 1, tview.NewTableCell("Key").SetSelectable(false))
 	b.table.SetCell(0, 2, tview.NewTableCell("Value").SetSelectable(false))
-	// b.table.SetCell(0, 3, tview.NewTableCell("Formatted").SetSelectable(false))
 	for i, entry := range b.MapEntries {
 		b.table.SetCell(i+1, 0, tview.NewTableCell(strconv.Itoa(i)))
 		b.table.SetCell(i+1, 1, tview.NewTableCell(applyFormat(curFormat, curWidth, curEndianness, entry.Key)))
-		b.table.SetCell(i+1, 2, tview.NewTableCell(applyFormat(curFormat, curWidth, curEndianness, entry.Value)).Set)
-		// b.table.SetCell(i+1, 3, tview.NewTableCell(applyFormat(curFormat, curWidth, curEndianness, entry.Formatted.Value)))
+		b.table.SetCell(i+1, 2, tview.NewTableCell(applyFormat(curFormat, curWidth, curEndianness, entry.Value)))
 	}
 }
 
@@ -269,10 +272,15 @@ func (b *BpfMapTableView) buildMapTableView() {
 		return event
 	})
 	b.table.SetSelectedFunc(func(row int, column int) {
-		key := b.table.GetCell(row, 1)
-		value := b.table.GetCell(row, 2)
-		b.form.GetFormItemByLabel("Key").(*tview.InputField).SetText(key.Text)
-		b.form.GetFormItemByLabel("Value").(*tview.InputField).SetText(value.Text)
+		if len(b.MapEntries) <= 0 {
+			return
+		}
+
+		key := b.MapEntries[row-1].Key
+		value := b.MapEntries[row-1].Value
+		b.form.GetFormItemByLabel("Key").(*tview.InputField).SetText(fmt.Sprintf("%v", key))
+		b.form.GetFormItemByLabel("Value").(*tview.InputField).SetText(fmt.Sprintf("%v", value))
+		b.form.SetFocus(0)
 		b.pages.SwitchToPage("form")
 	})
 }
@@ -281,10 +289,29 @@ func cellTextToHexString(cellValue string) string {
 	return strings.Trim(cellValue, "[]")
 }
 
+func cellTextToByteSlice(cellValue string) []byte {
+	trimmed := strings.Trim(cellValue, "[]")
+	split := strings.Split(trimmed, " ")
+	var result []byte
+	for _, s := range split {
+		b, err := strconv.ParseUint(s, 0, 8)
+		if err != nil {
+			logger.Printf("Error converting cell text to byte slice: %v\n", err)
+			return []byte{}
+		}
+		result = append(result, byte(b))
+	}
+	return result
+}
+
 func (b *BpfMapTableView) buildMapTableEditForm() {
-	b.form.AddInputField("Key", "", 20, nil, nil).
-	AddInputField("Value", "", 20, nil, nil).
+	b.form.AddInputField("Key", "", 0, nil, nil).
+	AddInputField("Value", "", 0, nil, nil).
 	AddButton("Save", func() {
+		if len(b.MapEntries) <= 0 {
+			return
+		}
+
 		// Get the new text value that the use input or the old one if they didn't change it
 		keyText := b.form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
 		valueText := b.form.GetFormItemByLabel("Value").(*tview.InputField).GetText()
@@ -296,15 +323,11 @@ func (b *BpfMapTableView) buildMapTableEditForm() {
 			logger.Printf("Error updating map entry: %v\n", err)
 		}
 
-		// Create new cells so we can update the table
-		newKey := tview.NewTableCell(keyText)
-		newValue := tview.NewTableCell(valueText)
-		
-		// Update the table view
+		// Update the map entries
 		row, _ := b.table.GetSelection()
-		b.table.SetCell(row, 1, newKey)
-		b.table.SetCell(row, 2, newValue)
-
+		b.MapEntries[row-1].Key = []byte(cellTextToByteSlice(keyText))
+		b.MapEntries[row-1].Value = []byte(cellTextToByteSlice(valueText))
+		b.UpdateMap(b.Map)
 		b.pages.SwitchToPage("table")
 	}).
 	AddButton("Cancel", func() {
@@ -319,13 +342,14 @@ func (b *BpfMapTableView) buildConfirmModal() {
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			if buttonLabel == "Yes" {
 				row, _ := b.table.GetSelection()
-				key := cellTextToHexString(b.table.GetCell(row, 1).Text)
+				key := strings.Trim(fmt.Sprintf("%v", b.MapEntries[row-1].Key), "[]")
 				cmd := strings.Split("sudo " + utils.BpftoolPath + " map delete id " + strconv.Itoa(b.Map.Id) + " key " + key, " ")
 				_, _, err := utils.RunCmd(cmd...)
 				if err != nil {
 					logger.Printf("Error deleting map entry: %v\n", err)
 				}
-				b.table.RemoveRow(row)
+
+				b.UpdateMap(b.Map)
 			}
 			b.pages.SwitchToPage("table")
 		})
@@ -392,9 +416,7 @@ func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 
 	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyTAB {
-			logger.Printf("Getting input capture for tab")
 			if b.table.HasFocus() {
-				logger.Printf("Table has focus")
 				tui.App.SetFocus(b.filter)
 				return nil
 			} 
@@ -408,8 +430,6 @@ func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 
 		return event
 	})
-
-			
 
 	b.pages.AddPage("table", flex, true, true)
 	b.pages.AddPage("form", b.form, true, false)
