@@ -13,7 +13,7 @@ import (
 )
 
 var BpftoolPath string
-var logger *log.Logger
+var Logger *log.Logger
 
 type ProcessInfo struct {
 	Pid int `json:"pid"`
@@ -208,13 +208,13 @@ func GetBpfMapInfo() ([]BpfMap, error) {
 	var bpfMap []BpfMap
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "show") 
 	if err != nil {
-		logger.Printf("Error getting map info: %v\n", err)
+		Logger.Printf("Error getting map info: %v\n", err)
 		return bpfMap, err
 	}
 
 	err = json.Unmarshal(stdout, &bpfMap)
 	if err != nil {
-		logger.Printf("Error unmarshalling map info: %v\n", err)
+		Logger.Printf("Error unmarshalling map info: %v\n", err)
 		return bpfMap, err
 	}
 	return bpfMap, nil
@@ -229,12 +229,12 @@ func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 	// Call the bpftool binary to get the map info
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "-j", "map", "show")
 	if err != nil {
-		logger.Printf("Error getting map info for ids: %v\n%v\n", mapIds, err)
+		Logger.Printf("Error getting map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 	err = json.Unmarshal(stdout, &tmp)
 	if err != nil {
-		logger.Printf("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
+		Logger.Printf("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 
@@ -259,7 +259,7 @@ func convertStringSliceToByteSlice(strSlice []string) ([]byte, error) {
 		// Parse the string as a hexadecimal value
 		bytes, err := hex.DecodeString(str)
 		if err != nil {
-			logger.Printf("Error decoding string slice to byte slice: %v\n", err)
+			Logger.Printf("Error decoding string slice to byte slice: %v\n", err)
 			return []byte{}, err
 		}
 
@@ -279,7 +279,7 @@ func GetBpfMapEntries(mapId int) ([]BpfMapEntry, error) {
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "dump", "id", strconv.Itoa(mapId))
 	if err != nil {
 		// TODO: Whats the right way to indicate this to the user?
-		logger.Printf("Error getting map entries for map id: %d\n%v\n", mapId, err)
+		Logger.Printf("Error getting map entries for map id: %d\n%v\n", mapId, err)
 		return result, err
 	}
 

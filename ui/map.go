@@ -17,7 +17,8 @@ import (
 const (
 	Hex = 0
 	Decimal = 1
-	Raw = 2
+	Char = 2
+	Raw = 3
 )
 
 const  (
@@ -161,6 +162,18 @@ func asHex(width int, endian int, data []byte) string {
 	return result
 }
 
+func asChar(data []byte) string {
+	var result string = ""
+	for _, b := range data {
+		if b >= 32 && b <= 126 {
+			result += fmt.Sprintf("%c", b)
+		} else {
+			result += "."
+		}
+	}
+	return result
+}
+
 // Doesn't change the default formatting of the data
 func asRaw(data []byte) string {
 	return fmt.Sprintf("%v", data)
@@ -220,6 +233,8 @@ func applyFormat(format int, width int, endianness int, data []byte) string {
 		return asHex(width, endianness, data)
 	case Decimal:
 		return asDecimal(width, endianness, data)
+	case Char:
+		return asChar(data)
 	default:
 		return asRaw(data)
 	}
@@ -352,13 +367,16 @@ func (b *BpfMapTableView) buildConfirmModal() {
 
 func (b *BpfMapTableView) buildFilterForm() {
 	b.filter = tview.NewForm().
-		AddDropDown("Data Format", []string{"Hex", "Decimal", "Raw"}, 0, func(option string, optionIndex int) {
+		AddDropDown("Data Format", []string{"Hex", "Decimal", "Char", "Raw"}, 0, func(option string, optionIndex int) {
 			switch optionIndex {
 			case 0:
 				curFormat = Hex
 				break
 			case 1:
 				curFormat = Decimal
+				break
+			case 2:
+				curFormat = Char
 				break
 			default:
 				curFormat = Raw
