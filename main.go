@@ -138,6 +138,7 @@ func main() {
 		Logger: logger,
 	}
 	utils.BpftoolPath = config.BpftoolPath
+	utils.Logger = config.Logger
 	app := ui.NewTui(config.BpftoolPath, logger)
 	logger.Println("Starting ebpfmon")
 
