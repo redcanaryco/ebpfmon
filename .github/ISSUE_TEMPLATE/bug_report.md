@@ -30,7 +30,7 @@ If applicable, add screenshots to help explain your problem.
 **Platform specifics (please complete the following information):**
  - Distro, Go version, Kernel version [e.g Ubuntu 20.04, Go 1.17, 5.13.0-28-generic]
  - Architecture [e.g. x86_64, arm64]
- - Version [e.g. 0.1.0]
+ - ebpfmon version [e.g. 0.1.0]
 
 **Additional context**
 Add any other context about the problem here.
