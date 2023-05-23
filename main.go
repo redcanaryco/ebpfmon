@@ -15,9 +15,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 )
 
 
@@ -64,7 +65,7 @@ func main() {
 	}
 
 	if *version {
-		fmt.Println("bpfmon version 0.1")
+		fmt.Println("ebpfmon version 0.1")
 		return
 	}
 
@@ -74,19 +75,19 @@ func main() {
 		logpath, err = filepath.Abs("./log.txt")
 		if err != nil {
 			fmt.Println("Failed to find log file")
-			return
+			os.Exit(1)
 		}
 	} else {
 		logpath, err = filepath.Abs(*logFileArg)
 		if err != nil {
 			fmt.Println("Failed to find log file")
-			return
+			os.Exit(1)
 		}
 	}
 	logFile, err = os.OpenFile(logpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Failed to open log file %s\n%v", logpath, err)
-		return
+		os.Exit(1)
 	}
 	defer logFile.Close()
 	logger := log.New(logFile, "", log.LstdFlags|log.Lshortfile)
@@ -100,35 +101,40 @@ func main() {
 		_, err := os.Stat(*bpftool_path)
 		if err != nil {
 			fmt.Printf("Failed to find bpftool binary at %s\n", *bpftool_path)
-			return
+			os.Exit(1)
 		}
 		BpftoolPath = *bpftool_path
 	} else if exists {
 		_, err := os.Stat(bpftoolEnvPath)
 		if err != nil {
 			fmt.Printf("Failed to find bpftool binary specified by BPFTOOL_PATH at %s\n", bpftoolEnvPath)
-			return
+			os.Exit(1)
 		}
 		BpftoolPath = bpftoolEnvPath
 	} else {
-		BpftoolPath, err = filepath.Abs("./.output/bpftool")
+		BpftoolPath, err = exec.LookPath("bpftool")
 		if err != nil {
 			fmt.Println("Failed to find compiled version of bpftool")
-			return
+			os.Exit(1)
+		} else {
+			BpftoolPath, err = filepath.Abs(BpftoolPath)
+			if err != nil {
+				fmt.Println("Failed to find compiled version of bpftool")
+				os.Exit(1)
+			}
 		}
-
 	}
 
 	versionInfo := BpftoolVersionInfo{}
 	stdout, stderr, err := utils.RunCmd(BpftoolPath, "version", "-j")
 	if err != nil {
 		fmt.Printf("Failed to run `%s version -j`\n%s\n", BpftoolPath, string(stderr))
-		return
+		os.Exit(1)
 	}
 	err = json.Unmarshal(stdout, &versionInfo)
 	if err != nil {
 		fmt.Println("Failed to parse bpftool version output")
-		return
+		os.Exit(1)
 	}
 
 	config := Config {
