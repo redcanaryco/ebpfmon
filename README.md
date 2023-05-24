@@ -76,6 +76,39 @@ NOTE: `bpftool` needs root privileges and so ebpfmon will run `sudo bpftool ...`
 This means you will likely be prompted to enter your sudo password.
 
 # Documentation
+## Navigation
+The main view for ebpfmon is the program view. This view shows all the eBPF
+programs that are currently loaded on the system. Each pane is selectable and
+you can swith between panes by using the `tab` key. In a given pane you can use
+the arrow keys to move the test or list selection up and down.
+For lists such as the programs or maps you can press enter to select. Selecting
+a program will populate the other other panes with information about that
+program. Selecting a map will switch to a map entry view that shows the entries
+for that map.
+
+## Keybindings
+There are a few keybindings that are available in ebpfmon. These are listed
+on the help page which can be access by pressing the `F1` key or the `?` key
+<p text-align="center">
+    <img src="images/help_menu.png" />
+</p>
+
+## Program View
+To access the program view regardless of which view you are on you can press `Ctrl` and `e`. 
+<p text-align="center">
+    <img src="images/program_view.png" />
+
+## Bpf feature view
+To access the bpf feature view regardless of which view you are on you can press `Ctrl` and `f`.
+<p text-align="center">
+    <img src="images/feature_view.png" />
+
+## Quitting
+To quit the application you can press `q` or `Q`
+
+## Going back
+Generally the escape key should take you back to the previous view you were on. Also, if you are in the help view or error view pressing escape should return you to the previous windows
+
 ## Command Line Arguments
 ### `-bpftool`
 Allows you to specify the path to the bpftool binary. This is useful if you have
@@ -90,6 +123,14 @@ in the following order
 This argument allows you to specify a file to log to. By default it will log to
 `./log.txt`. This is a great file to check when trying to debug issues with the
 application as it will log errors that occured during runtime.
+
+## Testing
+There are some basic tests associated with this project. If you want to use your own bpftool binary you can set the `BPFTOOL_PATH` environment variable to the path of your bpftool binary. If not it will default to using the system one.
+
+To run the tests simply the following command from the root directory of the project
+```bash
+$ go test ./...
+```
 
 ## Important notes about eBPF
 ### eBPF maps

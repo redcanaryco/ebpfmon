@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -211,20 +212,21 @@ func GetBpfMapInfo() ([]BpfMap, error) {
 	var bpfMap []BpfMap
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "show") 
 	if err != nil {
-		log.Error("Error getting map info: %v\n", err)
+		log.Errorf("Error getting map info: %v\n", err)
 		return bpfMap, err
 	}
 
 	err = json.Unmarshal(stdout, &bpfMap)
 	if err != nil {
-		log.Error("Error unmarshalling map info: %v\n", err)
+		log.Errorf("Error unmarshalling map info: %v\n", err)
 		return bpfMap, err
 	}
 	return bpfMap, nil
 }
 
 // Parse the output of the bpftool binary to get the map info that correspond
-// to the map ids the bpf program is using
+// to the map ids the bpf program is using. It assumed that at least one of
+// the ids should exist so finding none is considered an error
 func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 	tmp := []BpfMap{}
 	result := []BpfMap{}
@@ -232,12 +234,12 @@ func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 	// Call the bpftool binary to get the map info
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "-j", "map", "show")
 	if err != nil {
-		log.Error("Error getting map info for ids: %v\n%v\n", mapIds, err)
+		log.Errorf("Error getting map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 	err = json.Unmarshal(stdout, &tmp)
 	if err != nil {
-		log.Error("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
+		log.Errorf("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 
@@ -245,6 +247,10 @@ func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 		if contains(mapIds, m.Id) {
 			result = append(result, m)
 		}
+	}
+	if len(result) == 0 {
+		log.Errorf("No map info found for ids: %v\n", mapIds)
+		return []BpfMap{}, errors.New("No map info found")
 	}
 	return result, nil
 }
@@ -262,7 +268,7 @@ func convertStringSliceToByteSlice(strSlice []string) ([]byte, error) {
 		// Parse the string as a hexadecimal value
 		bytes, err := hex.DecodeString(str)
 		if err != nil {
-			log.Error("Error decoding string slice to byte slice: %v\n", err)
+			log.Errorf("Error decoding string slice to byte slice: %v\n", err)
 			return []byte{}, err
 		}
 
@@ -279,12 +285,16 @@ func GetBpfMapEntries(mapId int) ([]BpfMapEntry, error) {
 	var mapData []BpfMapEntryRaw
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "dump", "id", strconv.Itoa(mapId))
 	if err != nil {
-		log.Error("Error getting map entries for map id: %d\n%v\n", mapId, err)
+		log.Errorf("Error getting map entries for map id: %d\n%v\n", mapId, err)
 		return result, err
 	}
 
 	// Convert map data to individual elements
 	err = json.Unmarshal(stdout, &mapData)
+	if err != nil {
+		log.Errorf("Error unmarshalling map entries for map id: %d\n%v\n", mapId, err)
+		return result, err
+	}
 
 	// Use hex.DecodeString to convert the key and value to byte slices
 	for i, _ := range mapData {

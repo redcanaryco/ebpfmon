@@ -188,14 +188,6 @@ func RunCmd(args ...string) ([]byte, []byte, error) {
 	return stdout.Bytes(), stderr.Bytes(), err
 }
 
-func Which(program string) (string, error) {
-	path, err := exec.LookPath(program)
-	if err != nil {
-		return "", err
-	}
-	return path, nil
-}
-
 func FindProcByProgId(progId int) ([]int, error) {
 	var pids []int
 	id := strconv.Itoa(progId)
@@ -283,4 +275,34 @@ func (p BpfProgram) Compare(other BpfProgram) bool {
 		return true
 	}
 	return false
+}
+
+// Tview uses a special syntax in strings to colorize things. This function
+// removes those color codes from a string
+// And example string would look like "[blue]mystring[-]"
+func RemoveStringColors(s string) string {
+	if s == "" {
+		return s
+	}
+	
+	// Write a regex to match the color codes
+	r := regexp.MustCompile(`\[\w+\]|\[-\]`)
+	// Replace the color codes with an empty string
+	result := r.ReplaceAllString(s, "")
+	return result
+}
+
+func Which(program string) (string, error) {
+	path, err := exec.LookPath("bpftool")
+	if err != nil {
+		fmt.Println("Failed to find compiled version of bpftool")
+		return "", err
+	} else {
+		path, err = filepath.Abs(path)
+		if err != nil {
+			fmt.Println("Failed to find compiled version of bpftool")
+			return "", err
+		}
+	}
+	return path, nil
 }
