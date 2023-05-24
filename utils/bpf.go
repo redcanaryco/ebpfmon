@@ -9,11 +9,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 var BpftoolPath string
-var Logger *log.Logger
 
 type ProcessInfo struct {
 	Pid int `json:"pid"`
@@ -176,11 +175,15 @@ func (p BpfProgram) String() string {
 
 // Write a stringer for BpfMap
 func (p BpfMap) String() string {
-	if p.Name == "" {
-		return fmt.Sprintf("%6d: %s", p.Id, p.Type)
-	} else {
-		return fmt.Sprintf("%6d: %s %s", p.Id, p.Type, p.Name)
+	result := fmt.Sprintf("[blue]%7d:[-] %s", p.Id, p.Type)
+	if p.Name != "" {
+		result += p.Name
+	} 
+
+	if p.Frozen == 1 {
+		result += " [yellow](frozen)[-]"
 	}
+	return result
 }
 
 // Write a stringer for BpfMapEntry
@@ -208,13 +211,13 @@ func GetBpfMapInfo() ([]BpfMap, error) {
 	var bpfMap []BpfMap
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "show") 
 	if err != nil {
-		Logger.Printf("Error getting map info: %v\n", err)
+		log.Error("Error getting map info: %v\n", err)
 		return bpfMap, err
 	}
 
 	err = json.Unmarshal(stdout, &bpfMap)
 	if err != nil {
-		Logger.Printf("Error unmarshalling map info: %v\n", err)
+		log.Error("Error unmarshalling map info: %v\n", err)
 		return bpfMap, err
 	}
 	return bpfMap, nil
@@ -229,12 +232,12 @@ func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 	// Call the bpftool binary to get the map info
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "-j", "map", "show")
 	if err != nil {
-		Logger.Printf("Error getting map info for ids: %v\n%v\n", mapIds, err)
+		log.Error("Error getting map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 	err = json.Unmarshal(stdout, &tmp)
 	if err != nil {
-		Logger.Printf("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
+		log.Error("Error unmarshalling map info for ids: %v\n%v\n", mapIds, err)
 		return []BpfMap{}, err
 	}
 
@@ -259,7 +262,7 @@ func convertStringSliceToByteSlice(strSlice []string) ([]byte, error) {
 		// Parse the string as a hexadecimal value
 		bytes, err := hex.DecodeString(str)
 		if err != nil {
-			Logger.Printf("Error decoding string slice to byte slice: %v\n", err)
+			log.Error("Error decoding string slice to byte slice: %v\n", err)
 			return []byte{}, err
 		}
 
@@ -271,15 +274,12 @@ func convertStringSliceToByteSlice(strSlice []string) ([]byte, error) {
 }
 
 // Use bpftool map dump to get the data from a map
-// TODO: Do we want to work with the raw string values or a byte value?
-// TODO: e.g. ["0x00", "0x01", "0x02", ...] or [0x00, 0x01, 0x02, ...]?
 func GetBpfMapEntries(mapId int) ([]BpfMapEntry, error) {
 	var result []BpfMapEntry
 	var mapData []BpfMapEntryRaw
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "dump", "id", strconv.Itoa(mapId))
 	if err != nil {
-		// TODO: Whats the right way to indicate this to the user?
-		Logger.Printf("Error getting map entries for map id: %d\n%v\n", mapId, err)
+		log.Error("Error getting map entries for map id: %d\n%v\n", mapId, err)
 		return result, err
 	}
 

@@ -15,10 +15,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -39,7 +39,6 @@ type Config struct {
 	Version BpftoolVersionInfo
 	BpftoolPath string
 	Verbose bool
-	Logger *log.Logger
 }
 
 func main() {
@@ -57,11 +56,6 @@ func main() {
 		fmt.Println("ebpfmon is a tool for monitoring bpf programs")
 		flag.Usage()
 		return
-	}
-
-
-	if *verbose {
-		// TODO: Set verbose output
 	}
 
 	if *version {
@@ -90,8 +84,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer logFile.Close()
-	logger := log.New(logFile, "", log.LstdFlags|log.Lshortfile)
-
+	log.SetFormatter(&log.JSONFormatter{})
+    log.SetOutput(logFile)
+	if *verbose {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	// Set the global bpftool path variable. It can be set by the command line
 	// argument or by the BPFTOOL_PATH environment variable. It defaults to
@@ -141,12 +140,10 @@ func main() {
 		Version: versionInfo,
 		BpftoolPath: BpftoolPath,
 		Verbose: *verbose,
-		Logger: logger,
 	}
 	utils.BpftoolPath = config.BpftoolPath
-	utils.Logger = config.Logger
-	app := ui.NewTui(config.BpftoolPath, logger)
-	logger.Println("Starting ebpfmon")
+	app := ui.NewTui(config.BpftoolPath)
+	log.Info("Starting ebpfmon")
 
 	// Run the app
 	if err := app.App.Run(); err != nil {

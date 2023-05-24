@@ -8,7 +8,6 @@ import (
 	"ebpfmon/utils"
 	"fmt"
 	"sync"
-	"log"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -19,7 +18,6 @@ var BpftoolPath string
 var lock sync.Mutex 
 var previousPage string
 var featureInfo string
-var logger *log.Logger
 
 type FlowDissectorInfo struct {
 	DevName string `json:"devname"`
@@ -51,8 +49,7 @@ func (t *Tui) DisplayError(err string) {
 	t.pages.SwitchToPage("error")
 }
 
-func NewTui(bpftoolPath string, l *log.Logger) *Tui {
-	logger = l
+func NewTui(bpftoolPath string) *Tui {
 	Programs = map[int]utils.BpfProgram{}
 	BpftoolPath = bpftoolPath
 

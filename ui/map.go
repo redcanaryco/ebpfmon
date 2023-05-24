@@ -10,6 +10,7 @@ import (
 	"strings"
 	"encoding/binary"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -259,7 +260,7 @@ func (b *BpfMapTableView) UpdateMap(m utils.BpfMap) {
 	b.Map = m
 	b.MapEntries, err = utils.GetBpfMapEntries(b.Map.Id)
 	if err != nil {
-		logger.Printf("Error getting map entries: %v\n", err)
+		log.Printf("Error getting map entries: %v\n", err)
 	} else {
 		b.updateTable()
 	}
@@ -306,7 +307,7 @@ func cellTextToByteSlice(cellValue string) []byte {
 	for _, s := range split {
 		b, err := strconv.ParseUint(s, 0, 8)
 		if err != nil {
-			logger.Printf("Error converting cell text to byte slice: %v\n", err)
+			log.Printf("Error converting cell text to byte slice: %v\n", err)
 			return []byte{}
 		}
 		result = append(result, byte(b))
@@ -326,11 +327,14 @@ func (b *BpfMapTableView) buildMapTableEditForm() {
 		keyText := b.form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
 		valueText := b.form.GetFormItemByLabel("Value").(*tview.InputField).GetText()
 
-		// TODO: Need to convert text to appropriate string since we can format it now
 		cmd := strings.Split("sudo " + utils.BpftoolPath + " map update id " + strconv.Itoa(b.Map.Id) + " key " + cellTextToHexString(keyText) + " value " + cellTextToHexString(valueText), " ")
 		_, _, err := utils.RunCmd(cmd...)
 		if err != nil {
-			logger.Printf("Error updating map entry: %v\n", err)
+			if b.Map.Frozen == 1 {
+				log.Errorf("Failed to update map entry becuse the map is fozen: %v\n", err)
+			} else {
+				log.Errorf("Failed to update map entry: %v\nAttempted cmd: %s", err, cmd)
+			}
 		}
 
 		// Update the map entries
@@ -356,7 +360,7 @@ func (b *BpfMapTableView) buildConfirmModal() {
 				cmd := strings.Split("sudo " + utils.BpftoolPath + " map delete id " + strconv.Itoa(b.Map.Id) + " key " + key, " ")
 				_, _, err := utils.RunCmd(cmd...)
 				if err != nil {
-					logger.Printf("Error deleting map entry: %v\n", err)
+					log.Printf("Error deleting map entry: %v\n", err)
 				}
 
 				b.UpdateMap(b.Map)

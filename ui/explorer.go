@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -67,11 +68,11 @@ func applyNetData() {
 	netInfo := []NetInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "net", "show")
 	if err != nil {
-		logger.Printf("Error running `sudo %s -j net show`: %s\n", BpftoolPath, err)
+		log.Printf("Error running `sudo %s -j net show`: %s\n", BpftoolPath, err)
 	}
 	err = json.Unmarshal(stdout, &netInfo)
 	if err != nil {
-		logger.Printf("Error decoding json output of `sudo %s -j net show`: %s\n", BpftoolPath, err)
+		log.Printf("Error decoding json output of `sudo %s -j net show`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range netInfo {
@@ -104,11 +105,11 @@ func applyCgroupData() {
 	cgroupInfo := []CgroupInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "cgroup", "tree")
 	if err != nil {
-		logger.Printf("Error running `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
+		log.Printf("Error running `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
 	}
 	err = json.Unmarshal(stdout, &cgroupInfo)
 	if err != nil {
-		logger.Printf("Error decoding json output of `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
+		log.Printf("Error decoding json output of `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range cgroupInfo {
@@ -139,12 +140,12 @@ func applyPerfEventData() {
 	perfInfo := []PerfInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "perf", "list")
 	if err != nil {
-		logger.Printf("Error running `sudo %s -j perf list`: %s\n", BpftoolPath, err)
+		log.Printf("Error running `sudo %s -j perf list`: %s\n", BpftoolPath, err)
 	}
 
 	err = json.Unmarshal(stdout, &perfInfo)
 	if err != nil {
-		logger.Printf("Error decoding json output of `sudo %s -j perf list`: %s\n", BpftoolPath, err)
+		log.Printf("Error decoding json output of `sudo %s -j perf list`: %s\n", BpftoolPath, err)
 	}
 
 	for _, prog := range perfInfo {
@@ -380,7 +381,7 @@ func (b *BpfExplorerView) buildMapList(tui *Tui){
 		// TODO: What is the appropriate way to fail?
 		mapInfo, err := utils.GetBpfMapInfoByIds([]int{mapIdInt})
 		if err != nil {
-			logger.Printf("Failed to get map info: %s\n", err)
+			log.Printf("Failed to get map info: %s\n", err)
 		}
 		tui.bpfMapTableView.UpdateMap(mapInfo[0])
 
