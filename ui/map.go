@@ -43,6 +43,7 @@ type BpfMapTableView struct {
 	filter *tview.Form
 	table *tview.Table
 	confirm *tview.Modal
+	app *Tui
 	Map utils.BpfMap
 	MapEntries []utils.BpfMapEntry
 }
@@ -255,15 +256,17 @@ func (b *BpfMapTableView) updateTable() {
 }
 
 // Update Map
-func (b *BpfMapTableView) UpdateMap(m utils.BpfMap) {
+func (b *BpfMapTableView) UpdateMap(m utils.BpfMap) error {
 	var err error
 	b.Map = m
 	b.MapEntries, err = utils.GetBpfMapEntries(b.Map.Id)
 	if err != nil {
-		log.Printf("Error getting map entries: %v\n", err)
-	} else {
-		b.updateTable()
+		b.app.DisplayError(fmt.Sprintf("Error getting map entries for map %d: %v\n", b.Map.Id, err))
+		return err
 	}
+	
+	b.updateTable()
+	return nil
 }
 
 func (b *BpfMapTableView) buildMapTableView() {
@@ -331,9 +334,9 @@ func (b *BpfMapTableView) buildMapTableEditForm() {
 		_, _, err := utils.RunCmd(cmd...)
 		if err != nil {
 			if b.Map.Frozen == 1 {
-				log.Errorf("Failed to update map entry becuse the map is fozen: %v\n", err)
+				b.app.DisplayError("Failed to update map entry because the map is frozen")
 			} else {
-				log.Errorf("Failed to update map entry: %v\nAttempted cmd: %s", err, cmd)
+				b.app.DisplayError(fmt.Sprintf("Failed to update map entry: %v\nAttempted cmd: %s", err, cmd))
 			}
 		}
 
@@ -360,7 +363,7 @@ func (b *BpfMapTableView) buildConfirmModal() {
 				cmd := strings.Split("sudo " + utils.BpftoolPath + " map delete id " + strconv.Itoa(b.Map.Id) + " key " + key, " ")
 				_, _, err := utils.RunCmd(cmd...)
 				if err != nil {
-					log.Printf("Error deleting map entry: %v\n", err)
+					b.app.DisplayError(fmt.Sprintf("Error deleting map entry: %v\n", err))
 				}
 
 				b.UpdateMap(b.Map)
@@ -420,6 +423,7 @@ func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 		form: tview.NewForm(),
 		table: tview.NewTable(),
 		pages: tview.NewPages(),
+		app: tui,
 	}
 
 	b.buildMapTableView()

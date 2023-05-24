@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -44,6 +46,7 @@ type Tui struct {
 }
 
 func (t *Tui) DisplayError(err string) {
+	log.Error(err)
 	t.errorView.SetError(err)
 	previousPage, _ = t.pages.GetFrontPage()
 	t.pages.SwitchToPage("error")
@@ -58,7 +61,7 @@ func NewTui(bpftoolPath string) *Tui {
 	pages := tview.NewPages()
 	tui := &Tui{App: app, pages: pages}
 
-	// Create each page object
+	// Create each page object. Each object gets a reference to the main application
 	tui.bpfExplorerView = NewBpfExplorerView(tui)
 	tui.bpfFeatureview = NewBpfFeatureView(tui)
 	tui.bpfMapTableView = NewBpfMapTableView(tui)
@@ -66,7 +69,7 @@ func NewTui(bpftoolPath string) *Tui {
 	tui.errorView = NewErrorView()
 
 	fmt.Println("Collecting bpf information. This may take a few seconds")
-	updateBpfPrograms(tui)
+	updateBpfPrograms()
 
 	// Set up proper page navigation and global quit key
 	// In page navigation happens in their respective files
@@ -115,6 +118,7 @@ func NewTui(bpftoolPath string) *Tui {
 				return event
 			}
 			pages.SwitchToPage(previousPage)
+			name, prim = pages.GetFrontPage()
 			app.SetFocus(prim)
 			return nil
 		}
@@ -135,7 +139,7 @@ func NewTui(bpftoolPath string) *Tui {
 	app.SetRoot(pages, true)
 
 	// Start the go routine to update bpf programs and maps
-	go tui.bpfExplorerView.Update(tui)
+	go tui.bpfExplorerView.Update()
 
 	return tui
 }

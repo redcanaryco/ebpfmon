@@ -23,7 +23,6 @@ func compareSlices(a []byte, b []byte) bool {
 func TestPadBytes(t *testing.T) {
 	widths := []int{DataWidth8, DataWidth16, DataWidth32, DataWidth64}
 	for _, width := range widths {
-		t.Logf("Testing width: %v", width)
 		// If byte slice is empty we should always get a byte slice back
 		result := padBytes([]byte{}, width)
 		if len(result) != 0 {

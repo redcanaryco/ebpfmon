@@ -124,6 +124,14 @@ This argument allows you to specify a file to log to. By default it will log to
 `./log.txt`. This is a great file to check when trying to debug issues with the
 application as it will log errors that occured during runtime.
 
+## Testing
+There are some basic tests associated with this project. If you want to use your own bpftool binary you can set the `BPFTOOL_PATH` environment variable to the path of your bpftool binary. If not it will default to using the system one.
+
+To run the tests simply the following command from the root directory of the project
+```bash
+$ go test ./...
+```
+
 ## Important notes about eBPF
 ### eBPF maps
 - Frozen Maps: If a map is marked as frozen that means no future syscall invocations may alter the map state of map_fd. Write operations from eBPF programs are still possible for a frozen map. This means that bpftool (which is what is uised by ebpfmon) will not be able to alter the map entries. This is a limitation of bpftool and not ebpfmon.

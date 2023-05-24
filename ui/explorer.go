@@ -15,10 +15,12 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+
+var tui *Tui
 
 type CgroupProgram struct {
 	Id int `json:"id"`
@@ -68,11 +70,11 @@ func applyNetData() {
 	netInfo := []NetInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "net", "show")
 	if err != nil {
-		log.Printf("Error running `sudo %s -j net show`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error running `sudo %s -j net show`: %s\n", BpftoolPath, err))
 	}
 	err = json.Unmarshal(stdout, &netInfo)
 	if err != nil {
-		log.Printf("Error decoding json output of `sudo %s -j net show`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error decoding json output of `sudo %s -j net show`: %s\n", BpftoolPath, err))
 	}
 
 	for _, prog := range netInfo {
@@ -105,11 +107,11 @@ func applyCgroupData() {
 	cgroupInfo := []CgroupInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "cgroup", "tree")
 	if err != nil {
-		log.Printf("Error running `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error running `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err))
 	}
 	err = json.Unmarshal(stdout, &cgroupInfo)
 	if err != nil {
-		log.Printf("Error decoding json output of `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error decoding json output of `sudo %s -j cgroup tree`: %s\n", BpftoolPath, err))
 	}
 
 	for _, prog := range cgroupInfo {
@@ -140,12 +142,12 @@ func applyPerfEventData() {
 	perfInfo := []PerfInfo{}
 	stdout, _, err := utils.RunCmd("sudo", BpftoolPath, "-j", "perf", "list")
 	if err != nil {
-		log.Printf("Error running `sudo %s -j perf list`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error running `sudo %s -j perf list`: %s\n", BpftoolPath, err))
 	}
 
 	err = json.Unmarshal(stdout, &perfInfo)
 	if err != nil {
-		log.Printf("Error decoding json output of `sudo %s -j perf list`: %s\n", BpftoolPath, err)
+		tui.DisplayError(fmt.Sprintf("Error decoding json output of `sudo %s -j perf list`: %s\n", BpftoolPath, err))
 	}
 
 	for _, prog := range perfInfo {
@@ -170,7 +172,7 @@ func applyPerfEventData() {
 // Call the bpftool binary to gather the list of available programs
 // and return a list of BpfProgram structs
 // This runs as a go routine and updates the Programs variable
-func updateBpfPrograms(tui *Tui) {
+func updateBpfPrograms() {
 	// I think the bug is here. We need to intelligently update the Programs variable
 	// Use a mutex
 	lock.Lock()
@@ -206,20 +208,23 @@ func updateBpfPrograms(tui *Tui) {
 	lock.Unlock()
 }
 
-func NewBpfExplorerView(tui *Tui) *BpfExplorerView {
+func NewBpfExplorerView(t *Tui) *BpfExplorerView {
+	// Ensure that this pointer gets set first!
+	tui = t
+
 	BpfExplorerView := &BpfExplorerView{}
 	BpfExplorerView.buildProgramList()
-	BpfExplorerView.buildMapList(tui)
+	BpfExplorerView.buildMapList()
 	BpfExplorerView.buildDisassemblyView()
 	BpfExplorerView.buildBpfInfoView()
-	BpfExplorerView.buildLayout(tui)
+	BpfExplorerView.buildLayout()
 	return BpfExplorerView
 }
 
-func (b* BpfExplorerView) Update(tui *Tui) {
+func (b* BpfExplorerView) Update() {
 	for {
 		time.Sleep(3 * time.Second)
-		updateBpfPrograms(tui)
+		updateBpfPrograms()
 		currentSelection := b.programList.GetCurrentItem()
 
 		tui.App.QueueUpdateDraw(func() {
@@ -231,7 +236,7 @@ func (b* BpfExplorerView) Update(tui *Tui) {
 	}
 }
 
-func (b *BpfExplorerView) buildLayout(tui *Tui) {
+func (b *BpfExplorerView) buildLayout() {
 	// Arrange the UI elements
 	frame := buildFrame(b.programList)
 	rightFlex := tview.NewFlex().
@@ -369,23 +374,30 @@ func (b *BpfExplorerView) buildProgramList() {
 	})
 }
 
-func (b *BpfExplorerView) buildMapList(tui *Tui){
+func (b *BpfExplorerView) buildMapList(){
 	b.mapList = tview.NewList()
 	b.mapList.ShowSecondaryText(false)
 	b.mapList.SetBorder(true).SetTitle("Maps")
 
 	b.mapList.SetSelectedFunc(func(i int, s1, s2 string, r rune) {
-		mapId := strings.TrimSpace(strings.Split(s1, ":")[0])
+		mapId := strings.TrimSpace(strings.Split(utils.RemoveStringColors(s1), ":")[0])
 		mapIdInt, _ := strconv.Atoi(mapId)
 
 		// TODO: What is the appropriate way to fail?
 		mapInfo, err := utils.GetBpfMapInfoByIds([]int{mapIdInt})
 		if err != nil {
-			log.Printf("Failed to get map info: %s\n", err)
+			tui.DisplayError(fmt.Sprintf("Failed to get map info: %v\n", err))
+		} else {
+			if mapInfo[0].Type == "ringbuf" {
+				tui.DisplayError("Cannot read from a ringbuf map")
+				return
+			}
+			
+			err := tui.bpfMapTableView.UpdateMap(mapInfo[0])
+			if err == nil {
+				tui.pages.SwitchToPage("maptable")
+			}
 		}
-		tui.bpfMapTableView.UpdateMap(mapInfo[0])
-
-		tui.pages.SwitchToPage("maptable")
 	})
 }
 

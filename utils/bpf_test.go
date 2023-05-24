@@ -1,9 +1,40 @@
 package utils
 
 import (
+	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	// Set the path to bpftool using the system path
+	bpftoolEnvPath, exists := os.LookupEnv("BPFTOOL_PATH")
+	if exists {
+		_, err := os.Stat(bpftoolEnvPath)
+		if err != nil {
+			panic(err)
+		}
+		bpftoolEnvPath, err = filepath.Abs(bpftoolEnvPath)
+		if err != nil {
+			panic(err)
+		}
+		BpftoolPath = bpftoolEnvPath
+	} else {
+		path, err := Which("bpftool")
+		if err != nil {
+			panic(err)
+		}
+		BpftoolPath = path
+	}
+
+	// Set simple logging for tests
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.WarnLevel)
+}
 
 // Compares the values of two slices to determine if they are equal
 func compareSlices(a []byte, b []byte) bool {
@@ -67,25 +98,46 @@ func TestConvertStringSliceToByteSlice(t *testing.T) {
 
 }
 
+// Generate a random string of a given length
+func generateRandomString(length int) string {
+	var result string
+	for i := 0; i < length; i++ {
+		result += strconv.Itoa(rand.Intn(10))
+	}
+	return result
+}
+
+
 func TestGetMapEntries(t *testing.T) {
+	sysfsPath := "/sys/fs/bpf"
+	mapName := generateRandomString(10)
+	mapPinPath := sysfsPath + "/" + mapName
+
 	// Create a new bpf map using bpftool
-	_, _, err := RunCmd("sudo", "bpftool", "map", "create", "/sys/fs/bpf/mymap", "type", "hash", "key", "4", "value", "4", "entries", "1024", "name", "testmap")
+	_, stderr, err := RunCmd("sudo", "bpftool", "map", "create", mapPinPath, "type", "hash", "key", "4", "value", "4", "entries", "1024", "name", mapName)
 	if err != nil {
-		t.Errorf("Failed to create map, got %v", err)
+		t.Errorf("Failed to create map at %s, got %v - %s", mapPinPath, err, stderr)
+		return
 	}
 
 	// Get the id of the map
 	maps, err := GetBpfMapInfo()
 	if err != nil {
 		t.Errorf("Failed to get bpf map info, got %v", err)
+		return
 	}
 
 	// Find the map id by matching the map name
-	var mapId int
+	var mapId int = 0
 	for _, m := range maps {
-		if m.Name == "testmap" {
+		if m.Name == mapName {
 			mapId = m.Id
 		}
+	}
+
+	if mapId == 0 {
+		t.Errorf("Failed to find map id for map %s", mapName)
+		return
 	}
 
 	// Add entires to the map using bpftool map update
@@ -95,22 +147,34 @@ func TestGetMapEntries(t *testing.T) {
 	entries, err := GetBpfMapEntries(mapId)
 	if err != nil {
 		t.Errorf("Failed to get map entries, got %v", err)
+		return
 	}
 
 	// Check that the map entries are correct
 	if len(entries) != 1 {
 		t.Errorf("Expected 1 entry, got %d", len(entries))
+		return
 	}
 	if !compareSlices(entries[0].Key, []byte{0x00, 0x00, 0x00, 0x00}) {
 		t.Errorf("Expected key [0x00, 0x00, 0x00, 0x00], got %v", entries[0].Key)
+		return
 	}
 	if !compareSlices(entries[0].Value, []byte{0x00, 0x00, 0x00, 0x00}) {
 		t.Errorf("Expected value [0x00, 0x00, 0x00, 0x00], got %v", entries[0].Value)
+		return
 	}
 
 	// Delete the map
-	_, _, err = RunCmd("sudo", "bpftool", "map", "delete", "id", strconv.Itoa(mapId))
+	// _, _, err = RunCmd("sudo", "bpftool", "map", "delete", "id", strconv.Itoa(mapId))
+	// if err != nil {
+	// 	t.Errorf("Failed to delete map, got %v", err)
+	// }
+
+	// Delete the map pin
+	_, _, err = RunCmd("sudo", "rm", "-rf", mapPinPath)
 	if err != nil {
-		t.Errorf("Failed to delete map, got %v", err)
+		t.Errorf("Failed to delete map pin, got %v", err)
+		return
 	}
+
 }
