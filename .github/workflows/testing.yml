@@ -3,6 +3,7 @@ name: Go
 on:
   pull_request:
     types: [opened]
+  workflow_dispatch:
 
 jobs:
   build:
