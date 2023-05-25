@@ -1,9 +1,9 @@
-name: Testing
+name: Build
 
 on:
-  pull_request:
-    types: [opened]
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:

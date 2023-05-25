@@ -1,3 +1,5 @@
+![Build workflow](https://github.com/redcanaryco/ebpfmon/actions/workflows/build.yml/badge.svg)
+
 # ebpfmon
 ebpfmon is a tool for monitoring [eBPF](https://ebpf.io/what-is-ebpf/) programs. It is designed to be used with [bpftool](https://github.com/libbpf/bpftool) from the linux kernel. ebpfmon is a TUI (terminal UI) application written in Go that allows you to do real-time monitoring of eBPF programs.
 
@@ -107,7 +109,7 @@ To access the map view simply select a map (if one exists) for the current eBPF 
 To quit the application you can press `q` or `Q`
 
 ## Going back
-Generally the escape key should take you back to the previous view you were on. Also, if you are in the help view or error view pressing escape should return you to the previous windows
+Generally the `ESC` key should take you back to the previous view you were on. Also, if you are in the help view or error view, pressing escape should return you to the previous window.
 
 ## Command Line Arguments
 ### `-bpftool`
@@ -125,12 +127,14 @@ This argument allows you to specify a file to log to. By default it will log to
 application as it will log errors that occured during runtime.
 
 ## Testing
-There are some basic tests associated with this project. If you want to use your own bpftool binary you can set the `BPFTOOL_PATH` environment variable to the path of your bpftool binary. If not it will default to using the system one.
+There are some basic tests associated with this project.
 
 To run the tests simply the following command from the root directory of the project
 ```bash
 $ go test ./...
 ```
+
+If you want to use your own bpftool binary you can set the `BPFTOOL_PATH` environment variable to the path of your bpftool binary. If not it will default to using the system one.
 
 ## Important notes about eBPF
 ### eBPF maps
