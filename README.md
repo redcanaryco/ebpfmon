@@ -92,13 +92,13 @@ To access the bpf feature view regardless of which view you are on you can press
 </p>
 
 ## Map views
-To access the map view simply select a map (if one exists) for the current eBPF program. This will populate the map view with the map entries. In the map view you can format the map entry data in various ways. You can also delete map entries by pressing the `d` key.
+To access the map view simply select a map (if one exists) for the current eBPF program. This will populate the map view with the map entries. You can delete map entries by pressing the `d` key. In the map view you can format the map entry data in various ways. To get to the format section simply press `TAB` while in the map entry list view. You can then use `TAB` to move between the different format options. To get back to the map entry list press `ESC`
 
 <p text-align="center">
     <img src="images/map_entry_view2.png" />
 </p>
 
- You can also edit map entries by pressing `enter` on a selection
+ You can also edit map entries by pressing `ENTER` on a selection. In the edit view you can edit the raw byte values of the map key/value. You can ignore the square brackets
  <p text-align="center">
     <img src="images/map_entry_edit_view.png" />
 </p>
