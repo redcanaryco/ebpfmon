@@ -5,32 +5,32 @@ package ui
 
 import (
 	"ebpfmon/utils"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
-	"encoding/binary"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	Hex = 0
+	Hex     = 0
 	Decimal = 1
-	Char = 2
-	Raw = 3
+	Char    = 2
+	Raw     = 3
 )
 
-const  (
-	DataWidth8 = 1
+const (
+	DataWidth8  = 1
 	DataWidth16 = 2
 	DataWidth32 = 4
 	DataWidth64 = 8
 )
 const (
 	Little = 0
-	Big = 1
+	Big    = 1
 )
 
 var curFormat = Hex
@@ -38,68 +38,68 @@ var curWidth = DataWidth8
 var curEndianness = Little
 
 type BpfMapTableView struct {
-	pages *tview.Pages
-	form *tview.Form
-	filter *tview.Form
-	table *tview.Table
-	confirm *tview.Modal
-	app *Tui
-	Map utils.BpfMap
+	pages      *tview.Pages
+	form       *tview.Form
+	filter     *tview.Form
+	table      *tview.Table
+	confirm    *tview.Modal
+	app        *Tui
+	Map        utils.BpfMap
 	MapEntries []utils.BpfMapEntry
 }
 
 func asDecimal(width int, endian int, data []byte) string {
 	var result string = ""
 	switch width {
-		case DataWidth8:
-			for _, b := range data {
-				result += strconv.Itoa(int(b)) + " "
-			}
-			break
-		case DataWidth16:
-			if len(data) % DataWidth16 != 0 {
-				return ""
-			}
+	case DataWidth8:
+		for _, b := range data {
+			result += strconv.Itoa(int(b)) + " "
+		}
+		break
+	case DataWidth16:
+		if len(data)%DataWidth16 != 0 {
+			return ""
+		}
 
-			if endian == Little {
-				for i := 0; i < len(data); i += 2 {
-					result += strconv.Itoa(int(binary.LittleEndian.Uint16(data[i:i+2]))) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 2 {
-					result += strconv.Itoa(int(binary.BigEndian.Uint16(data[i:i+2]))) + " "
-				}
+		if endian == Little {
+			for i := 0; i < len(data); i += 2 {
+				result += strconv.Itoa(int(binary.LittleEndian.Uint16(data[i:i+2]))) + " "
 			}
-			break
-		case DataWidth32:
-			if len(data) % DataWidth32 != 0 {
-				return ""
+		} else {
+			for i := 0; i < len(data); i += 2 {
+				result += strconv.Itoa(int(binary.BigEndian.Uint16(data[i:i+2]))) + " "
 			}
-			if endian == Little {
-				for i := 0; i < len(data); i += 4 {
-					result += strconv.Itoa(int(binary.LittleEndian.Uint32(data[i:i+4]))) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 4 {
-					result += strconv.Itoa(int(binary.BigEndian.Uint32(data[i:i+4]))) + " "
-				}
+		}
+		break
+	case DataWidth32:
+		if len(data)%DataWidth32 != 0 {
+			return ""
+		}
+		if endian == Little {
+			for i := 0; i < len(data); i += 4 {
+				result += strconv.Itoa(int(binary.LittleEndian.Uint32(data[i:i+4]))) + " "
 			}
-			break
-		case DataWidth64:
-			if len(data) % DataWidth64 != 0 {
-				return ""
+		} else {
+			for i := 0; i < len(data); i += 4 {
+				result += strconv.Itoa(int(binary.BigEndian.Uint32(data[i:i+4]))) + " "
 			}
+		}
+		break
+	case DataWidth64:
+		if len(data)%DataWidth64 != 0 {
+			return ""
+		}
 
-			if endian == Little {
-				for i := 0; i < len(data); i += 8 {
-					result += strconv.Itoa(int(binary.LittleEndian.Uint64(data[i:i+8]))) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 8 {
-					result += strconv.Itoa(int(binary.BigEndian.Uint64(data[i:i+8]))) + " "
-				}
+		if endian == Little {
+			for i := 0; i < len(data); i += 8 {
+				result += strconv.Itoa(int(binary.LittleEndian.Uint64(data[i:i+8]))) + " "
 			}
-			break
+		} else {
+			for i := 0; i < len(data); i += 8 {
+				result += strconv.Itoa(int(binary.BigEndian.Uint64(data[i:i+8]))) + " "
+			}
+		}
+		break
 	}
 	result = strings.Trim(result, " ")
 	return result
@@ -109,55 +109,55 @@ func asDecimal(width int, endian int, data []byte) string {
 func asHex(width int, endian int, data []byte) string {
 	var result string = ""
 	switch width {
-		case DataWidth8:
-			for _, b := range data {
-				result += fmt.Sprintf("%#02x", b) + " "
-			}
-			break
-		case DataWidth16:
-			if len(data) % DataWidth16 != 0 {
-				return ""
-			}
+	case DataWidth8:
+		for _, b := range data {
+			result += fmt.Sprintf("%#02x", b) + " "
+		}
+		break
+	case DataWidth16:
+		if len(data)%DataWidth16 != 0 {
+			return ""
+		}
 
-			if endian == Little {
-				for i := 0; i < len(data); i += 2 {
-					result += fmt.Sprintf("%#04x", binary.LittleEndian.Uint16(data[i:i+2])) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 2 {
-					result += fmt.Sprintf("%#04x", binary.BigEndian.Uint16(data[i:i+2])) + " "
-				}
+		if endian == Little {
+			for i := 0; i < len(data); i += 2 {
+				result += fmt.Sprintf("%#04x", binary.LittleEndian.Uint16(data[i:i+2])) + " "
 			}
-			break
-		case DataWidth32:
-			if len(data) % DataWidth32 != 0 {
-				return ""
+		} else {
+			for i := 0; i < len(data); i += 2 {
+				result += fmt.Sprintf("%#04x", binary.BigEndian.Uint16(data[i:i+2])) + " "
 			}
-			if endian == Little {
-				for i := 0; i < len(data); i += 4 {
-					result += fmt.Sprintf("%#08x", binary.LittleEndian.Uint32(data[i:i+4])) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 4 {
-					result += fmt.Sprintf("%#08x", binary.BigEndian.Uint32(data[i:i+4])) + " "
-				}
+		}
+		break
+	case DataWidth32:
+		if len(data)%DataWidth32 != 0 {
+			return ""
+		}
+		if endian == Little {
+			for i := 0; i < len(data); i += 4 {
+				result += fmt.Sprintf("%#08x", binary.LittleEndian.Uint32(data[i:i+4])) + " "
 			}
-			break
-		case DataWidth64:
-			if len(data) % DataWidth64 != 0 {
-				return ""
-			}			
+		} else {
+			for i := 0; i < len(data); i += 4 {
+				result += fmt.Sprintf("%#08x", binary.BigEndian.Uint32(data[i:i+4])) + " "
+			}
+		}
+		break
+	case DataWidth64:
+		if len(data)%DataWidth64 != 0 {
+			return ""
+		}
 
-			if endian == Little {
-				for i := 0; i < len(data); i += 8 {
-					result += fmt.Sprintf("%#016x", binary.LittleEndian.Uint64(data[i:i+8])) + " "
-				}
-			} else {
-				for i := 0; i < len(data); i += 8 {
-					result += fmt.Sprintf("%#016x", binary.BigEndian.Uint64(data[i:i+8])) + " "
-				}
+		if endian == Little {
+			for i := 0; i < len(data); i += 8 {
+				result += fmt.Sprintf("%#016x", binary.LittleEndian.Uint64(data[i:i+8])) + " "
 			}
-			break
+		} else {
+			for i := 0; i < len(data); i += 8 {
+				result += fmt.Sprintf("%#016x", binary.BigEndian.Uint64(data[i:i+8])) + " "
+			}
+		}
+		break
 	}
 	result = strings.Trim(result, " ")
 
@@ -183,7 +183,7 @@ func asRaw(data []byte) string {
 
 // Adds some null bytes to the beggining of a slice
 func padBytesBeginning(data []byte, width int) []byte {
-	if len(data) % width == 0 {
+	if len(data)%width == 0 {
 		return data
 	}
 
@@ -199,7 +199,7 @@ func padBytesBeginning(data []byte, width int) []byte {
 
 // Add some null bytes to the end of a slice
 func padBytesEnd(data []byte, width int) []byte {
-	if len(data) % width == 0 {
+	if len(data)%width == 0 {
 		return data
 	}
 
@@ -215,7 +215,7 @@ func padBytesEnd(data []byte, width int) []byte {
 
 // Adds padding to the bytes based on endianness
 func padBytes(data []byte, width int) []byte {
-	if len(data) % width == 0 {
+	if len(data)%width == 0 {
 		return data
 	}
 
@@ -227,7 +227,7 @@ func applyFormat(format int, width int, endianness int, data []byte) string {
 	if len(data) == 0 {
 		return ""
 	}
-	
+
 	data = padBytes(data, width)
 
 	switch format {
@@ -264,7 +264,7 @@ func (b *BpfMapTableView) UpdateMap(m utils.BpfMap) error {
 		b.app.DisplayError(fmt.Sprintf("Error getting map entries for map %d: %v\n", b.Map.Id, err))
 		return err
 	}
-	
+
 	b.updateTable()
 	return nil
 }
@@ -320,36 +320,36 @@ func cellTextToByteSlice(cellValue string) []byte {
 
 func (b *BpfMapTableView) buildMapTableEditForm() {
 	b.form.AddInputField("Key", "", 0, nil, nil).
-	AddInputField("Value", "", 0, nil, nil).
-	AddButton("Save", func() {
-		if len(b.MapEntries) <= 0 {
-			return
-		}
-
-		// Get the new text value that the use input or the old one if they didn't change it
-		keyText := b.form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
-		valueText := b.form.GetFormItemByLabel("Value").(*tview.InputField).GetText()
-
-		cmd := strings.Split("sudo " + utils.BpftoolPath + " map update id " + strconv.Itoa(b.Map.Id) + " key " + cellTextToHexString(keyText) + " value " + cellTextToHexString(valueText), " ")
-		_, _, err := utils.RunCmd(cmd...)
-		if err != nil {
-			if b.Map.Frozen == 1 {
-				b.app.DisplayError("Failed to update map entry because the map is frozen")
-			} else {
-				b.app.DisplayError(fmt.Sprintf("Failed to update map entry: %v\nAttempted cmd: %s", err, cmd))
+		AddInputField("Value", "", 0, nil, nil).
+		AddButton("Save", func() {
+			if len(b.MapEntries) <= 0 {
+				return
 			}
-		}
 
-		// Update the map entries
-		row, _ := b.table.GetSelection()
-		b.MapEntries[row-1].Key = []byte(cellTextToByteSlice(keyText))
-		b.MapEntries[row-1].Value = []byte(cellTextToByteSlice(valueText))
-		b.UpdateMap(b.Map)
-		b.pages.SwitchToPage("table")
-	}).
-	AddButton("Cancel", func() {
-		b.pages.SwitchToPage("table")
-	})
+			// Get the new text value that the use input or the old one if they didn't change it
+			keyText := b.form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
+			valueText := b.form.GetFormItemByLabel("Value").(*tview.InputField).GetText()
+
+			cmd := strings.Split("sudo "+utils.BpftoolPath+" map update id "+strconv.Itoa(b.Map.Id)+" key "+cellTextToHexString(keyText)+" value "+cellTextToHexString(valueText), " ")
+			_, _, err := utils.RunCmd(cmd...)
+			if err != nil {
+				if b.Map.Frozen == 1 {
+					b.app.DisplayError("Failed to update map entry because the map is frozen")
+				} else {
+					b.app.DisplayError(fmt.Sprintf("Failed to update map entry: %v\nAttempted cmd: %s", err, cmd))
+				}
+			}
+
+			// Update the map entries
+			row, _ := b.table.GetSelection()
+			b.MapEntries[row-1].Key = []byte(cellTextToByteSlice(keyText))
+			b.MapEntries[row-1].Value = []byte(cellTextToByteSlice(valueText))
+			b.UpdateMap(b.Map)
+			b.pages.SwitchToPage("table")
+		}).
+		AddButton("Cancel", func() {
+			b.pages.SwitchToPage("table")
+		})
 }
 
 func (b *BpfMapTableView) buildConfirmModal() {
@@ -360,7 +360,7 @@ func (b *BpfMapTableView) buildConfirmModal() {
 			if buttonLabel == "Yes" {
 				row, _ := b.table.GetSelection()
 				key := strings.Trim(fmt.Sprintf("%v", b.MapEntries[row-1].Key), "[]")
-				cmd := strings.Split("sudo " + utils.BpftoolPath + " map delete id " + strconv.Itoa(b.Map.Id) + " key " + key, " ")
+				cmd := strings.Split("sudo "+utils.BpftoolPath+" map delete id "+strconv.Itoa(b.Map.Id)+" key "+key, " ")
 				_, _, err := utils.RunCmd(cmd...)
 				if err != nil {
 					b.app.DisplayError(fmt.Sprintf("Error deleting map entry: %v\n", err))
@@ -390,40 +390,40 @@ func (b *BpfMapTableView) buildFilterForm() {
 			}
 			b.updateTable()
 		}).AddDropDown("Endianness", []string{"Little", "Big"}, 0, func(option string, optionIndex int) {
-			switch optionIndex {
-			case 0:
-				curEndianness = Little
-				break
-			default:
-				curEndianness = Big
-			}
-			b.updateTable()
-		}).AddDropDown("Data Width", []string{"8", "16", "32", "64"}, 0, func(option string, optionIndex int) {
-			switch optionIndex {
-			case 0:
-				curWidth = DataWidth8
-				break
-			case 1:
-				curWidth = DataWidth16
-				break
-			case 2:
-				curWidth = DataWidth32
-				break
-			default:
-				curWidth = DataWidth64
-			}
-			b.updateTable()
-		})
-	
+		switch optionIndex {
+		case 0:
+			curEndianness = Little
+			break
+		default:
+			curEndianness = Big
+		}
+		b.updateTable()
+	}).AddDropDown("Data Width", []string{"8", "16", "32", "64"}, 0, func(option string, optionIndex int) {
+		switch optionIndex {
+		case 0:
+			curWidth = DataWidth8
+			break
+		case 1:
+			curWidth = DataWidth16
+			break
+		case 2:
+			curWidth = DataWidth32
+			break
+		default:
+			curWidth = DataWidth64
+		}
+		b.updateTable()
+	})
+
 }
 
 // Make a new BpfMapTableView. These functions only need to be called once
 func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 	b := BpfMapTableView{
-		form: tview.NewForm(),
+		form:  tview.NewForm(),
 		table: tview.NewTable(),
 		pages: tview.NewPages(),
-		app: tui,
+		app:   tui,
 	}
 
 	b.buildMapTableView()
@@ -440,7 +440,7 @@ func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 			if b.table.HasFocus() {
 				tui.App.SetFocus(b.filter)
 				return nil
-			} 
+			}
 		} else if event.Key() == tcell.KeyEsc {
 			if b.filter.HasFocus() {
 				tui.App.SetFocus(b.table)
@@ -455,9 +455,6 @@ func NewBpfMapTableView(tui *Tui) *BpfMapTableView {
 	b.pages.AddPage("table", flex, true, true)
 	b.pages.AddPage("form", b.form, true, false)
 	b.pages.AddPage("confirm", b.confirm, true, false)
-	
+
 	return &b
 }
-
-
-

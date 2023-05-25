@@ -11,7 +11,7 @@ func NewHelpView() *HelpView {
 	v := &HelpView{}
 	v.buildHelpView()
 	return v
-}	
+}
 
 func (h *HelpView) buildHelpView() {
 	modal := tview.NewModal()

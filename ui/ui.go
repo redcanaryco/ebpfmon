@@ -17,32 +17,32 @@ import (
 
 var Programs map[int]utils.BpfProgram
 var BpftoolPath string
-var lock sync.Mutex 
+var lock sync.Mutex
 var previousPage string
 var featureInfo string
 
 type FlowDissectorInfo struct {
 	DevName string `json:"devname"`
-	IfIndex int `json:"ifindex"`
-	Id int `json:"id"`
+	IfIndex int    `json:"ifindex"`
+	Id      int    `json:"id"`
 }
 
 type TcInfo struct {
 	DevName string `json:"devname"`
-	IfIndex int `json:"ifindex"`
-	Kind string `json:"kind"`
-	Name string `json:"name"`
-	Id int `json:"id"`
+	IfIndex int    `json:"ifindex"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Id      int    `json:"id"`
 }
 
 type Tui struct {
-	App *tview.Application
-	pages *tview.Pages
+	App             *tview.Application
+	pages           *tview.Pages
 	bpfExplorerView *BpfExplorerView
 	bpfMapTableView *BpfMapTableView
-	bpfFeatureview *BpfFeatureView
-	helpView *HelpView
-	errorView *ErrorView
+	bpfFeatureview  *BpfFeatureView
+	helpView        *HelpView
+	errorView       *ErrorView
 }
 
 func (t *Tui) DisplayError(err string) {
@@ -73,7 +73,7 @@ func NewTui(bpftoolPath string) *Tui {
 
 	// Set up proper page navigation and global quit key
 	// In page navigation happens in their respective files
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {	
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		// Set up q quit key and page navigation
 		if event.Rune() == 'q' || event.Rune() == 'Q' {
 			app.Stop()
@@ -98,7 +98,7 @@ func NewTui(bpftoolPath string) *Tui {
 			// Set focus to the input field
 			app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
 			return nil
-		}  else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
+		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			name, _ := pages.GetFrontPage()
 			if name == "help" {
 				pages.SwitchToPage(previousPage)
@@ -124,7 +124,7 @@ func NewTui(bpftoolPath string) *Tui {
 		}
 		return event
 	})
-	
+
 	// These are the main pages for the application
 	pages.AddPage("programs", tui.bpfExplorerView.flex, true, true)
 	pages.AddPage("help", tui.helpView.modal, true, false)

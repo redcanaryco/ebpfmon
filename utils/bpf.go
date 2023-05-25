@@ -6,22 +6,22 @@ package utils
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
-	"errors"
-	log "github.com/sirupsen/logrus"
 )
 
 var BpftoolPath string
 
 type ProcessInfo struct {
-	Pid int `json:"pid"`
-	Comm string `json:"comm"`
+	Pid     int    `json:"pid"`
+	Comm    string `json:"comm"`
 	Cmdline string
-	Path string
-	Uid int
-	Gid int
+	Path    string
+	Uid     int
+	Gid     int
 }
 
 type BpfMap struct {
@@ -53,7 +53,7 @@ type BpfMap struct {
 	BtfId int `json:"btf_id",omitempty`
 
 	// The state of the map. Examples could be frozen, pinned etc
-	Frozen int  `json:"frozen",omitempty`
+	Frozen int `json:"frozen",omitempty`
 
 	// If the map is pinned the path will be here
 	Pinned []string `json:"pinned",omitempty`
@@ -89,22 +89,22 @@ type BpfMapEntry struct {
 
 type BpfProgram struct {
 	// The name of the program. This field may be empty
-    Name string `json:"name",omitempty`
+	Name string `json:"name",omitempty`
 
 	// The tag of the program. This field should not be empty
-    Tag string `json:"tag"`
+	Tag string `json:"tag"`
 
 	// The bpf program id
-    ProgramId int `json:"id"`
+	ProgramId int `json:"id"`
 
 	// The type of the program i.e. Kprobe, Kretprobe, Uprobe etc
-    ProgType string `json:"type"`
+	ProgType string `json:"type"`
 
 	// The license of the program. May be empty
-    GplCompatible bool `json:"gpl_compatible"`
+	GplCompatible bool `json:"gpl_compatible"`
 
 	// The time the program was loaded
-    LoadedAt int `json:"loaded_at"`
+	LoadedAt int `json:"loaded_at"`
 
 	// The uid of the owner
 	OwnerUid int `json:"uid"`
@@ -122,10 +122,10 @@ type BpfProgram struct {
 	BytesMemlock int `json:"bytes_memlock"`
 
 	// The ids of any maps the program references
-    MapIds []int `json:"map_ids",omitempty`
+	MapIds []int `json:"map_ids",omitempty`
 
 	// The id of an btf objects the program references
-    BtfId int `json:"btf_id",omitempty`
+	BtfId int `json:"btf_id",omitempty`
 
 	// If the program is pinned this field will contain the path
 	Pinned []string `json:"pinned",omitempty`
@@ -161,7 +161,6 @@ type BpfProgram struct {
 
 	// Either multi or override
 	CgroupAttachFlags string
-
 }
 
 // Write a stringer for BpfProgram
@@ -179,7 +178,7 @@ func (p BpfMap) String() string {
 	result := fmt.Sprintf("[blue]%7d:[-] %s", p.Id, p.Type)
 	if p.Name != "" {
 		result += p.Name
-	} 
+	}
 
 	if p.Frozen == 1 {
 		result += " [yellow](frozen)[-]"
@@ -210,7 +209,7 @@ func GetBpfProgramDisassembly(programId int) ([]string, error) {
 // Use bpftool map show to get the map info
 func GetBpfMapInfo() ([]BpfMap, error) {
 	var bpfMap []BpfMap
-	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "show") 
+	stdout, _, err := RunCmd("sudo", BpftoolPath, "map", "-jf", "show")
 	if err != nil {
 		log.Errorf("Error getting map info: %v\n", err)
 		return bpfMap, err
@@ -230,7 +229,7 @@ func GetBpfMapInfo() ([]BpfMap, error) {
 func GetBpfMapInfoByIds(mapIds []int) ([]BpfMap, error) {
 	tmp := []BpfMap{}
 	result := []BpfMap{}
-	
+
 	// Call the bpftool binary to get the map info
 	stdout, _, err := RunCmd("sudo", BpftoolPath, "-j", "map", "show")
 	if err != nil {

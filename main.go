@@ -15,29 +15,36 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
-	log "github.com/sirupsen/logrus"
 )
 
-
+// The global path to the bpftool binary
 var BpftoolPath string
 
+// A struct for storing the output of `bpftool version -j`
 type BpftoolVersionInfo struct {
-	Version string `json:"version"`
+	Version       string `json:"version"`
 	LibbpfVersion string `json:"libbpf_version"`
-	Features struct {
-		Libbfd bool `json:"libbfd"`
-		Llvm bool `json:"llvm"`
+	Features      struct {
+		Libbfd    bool `json:"libbfd"`
+		Llvm      bool `json:"llvm"`
 		Skeletons bool `json:"skeletons"`
 		Bootstrap bool `json:"bootstrap"`
 	} `json:"features"`
 }
 
+// A simple struct for storing the config for the app
 type Config struct {
+	// The version of bpftool that is being used
 	Version BpftoolVersionInfo
+
+	// The path to the bpftool binary
 	BpftoolPath string
+
+	// Logging verbosity
 	Verbose bool
 }
 
@@ -85,7 +92,7 @@ func main() {
 	}
 	defer logFile.Close()
 	log.SetFormatter(&log.JSONFormatter{})
-    log.SetOutput(logFile)
+	log.SetOutput(logFile)
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -136,10 +143,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := Config {
-		Version: versionInfo,
+	config := Config{
+		Version:     versionInfo,
 		BpftoolPath: BpftoolPath,
-		Verbose: *verbose,
+		Verbose:     *verbose,
 	}
 	utils.BpftoolPath = config.BpftoolPath
 	app := ui.NewTui(config.BpftoolPath)

@@ -52,7 +52,7 @@ func GetProcessName(pid int) (string, error) {
 
 // Get the path of a process using the pid
 func GetProcessPath(pid int) (string, error) {
-	cmd := exec.Command("sudo", "readlink", "-f", "/proc/" + strconv.Itoa(pid) + "/exe")
+	cmd := exec.Command("sudo", "readlink", "-f", "/proc/"+strconv.Itoa(pid)+"/exe")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -77,7 +77,6 @@ func GetProcsInCgroup(cgroupPath string) ([]CgroupProcess, error) {
 	// Convert the tasks to a list of strings
 	processes := strings.Split(strings.TrimSpace(string(tasks)), "\n")
 
-
 	if len(processes) == 1 && processes[0] == "" {
 		return []CgroupProcess{}, &CgroupProcNotFoundError{}
 	}
@@ -99,12 +98,12 @@ func GetProcsInCgroup(cgroupPath string) ([]CgroupProcess, error) {
 		if err != nil {
 			path = ""
 		}
-		result = append(result, CgroupProcess {
-			Pid: procId,
+		result = append(result, CgroupProcess{
+			Pid:        procId,
 			CgroupPath: cgroupPath,
-			Comm: comm,
-			Cmdline: cmdline,
-			Path:path,
+			Comm:       comm,
+			Cmdline:    cmdline,
+			Path:       path,
 		})
 	}
 	return result, nil
@@ -136,9 +135,9 @@ func parseCgroups(path ...string) (map[string][]string, error) {
 			// Convert the tasks to a list of strings
 			processes := strings.Split(strings.TrimSpace(string(tasks)), "\n")
 
-            if len(processes) == 1 && processes[0] == "" {
-                return nil
-            }
+			if len(processes) == 1 && processes[0] == "" {
+				return nil
+			}
 
 			// Build the cgroup path by removing the "/sys/fs/cgroup/" prefix from the path
 			cgroup := strings.TrimPrefix(path, "/sys/fs/cgroup/")
@@ -192,7 +191,6 @@ func FindProcByProgId(progId int) ([]int, error) {
 	var pids []int
 	id := strconv.Itoa(progId)
 
-
 	// Walk the /proc directory
 	err := filepath.WalkDir("/proc", func(path string, info fs.DirEntry, err error) error {
 		if err != nil {
@@ -203,7 +201,7 @@ func FindProcByProgId(progId int) ([]int, error) {
 		if info.IsDir() && isNumeric(info.Name()) {
 			pid, err := strconv.Atoi(info.Name())
 			if err != nil {
-                // fmt.Printf("Failed to convert %s\n", info.Name())
+				// fmt.Printf("Failed to convert %s\n", info.Name())
 				return nil
 			}
 
@@ -217,7 +215,7 @@ func FindProcByProgId(progId int) ([]int, error) {
 				}
 
 				if err != nil {
-                    // fmt.Printf("Failed to read%s\n", fdinfoDir)
+					// fmt.Printf("Failed to read%s\n", fdinfoDir)
 					return nil
 				}
 
@@ -251,7 +249,7 @@ func FindProcByProgId(progId int) ([]int, error) {
 	})
 
 	if err != nil {
-        // fmt.Println("Failed")
+		// fmt.Println("Failed")
 		return nil, err
 	}
 
@@ -270,8 +268,8 @@ func contains(s []int, e int) bool {
 
 // Write a function with a receiver to compare two BpfProgram structs
 func (p BpfProgram) Compare(other BpfProgram) bool {
-	if p.ProgramId == other.ProgramId && 
-	   p.Tag == other.Tag {
+	if p.ProgramId == other.ProgramId &&
+		p.Tag == other.Tag {
 		return true
 	}
 	return false
@@ -284,7 +282,7 @@ func RemoveStringColors(s string) string {
 	if s == "" {
 		return s
 	}
-	
+
 	// Write a regex to match the color codes
 	r := regexp.MustCompile(`\[\w+\]|\[-\]`)
 	// Replace the color codes with an empty string

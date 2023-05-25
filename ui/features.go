@@ -49,7 +49,7 @@ func (b *BpfFeatureView) buildFeatureView(tui *Tui) {
 						filteredText += line + "\n"
 					}
 				}
-			} 
+			}
 			featureView.SetText(filteredText)
 		})
 	// form.SetHorizontal(true)
@@ -77,7 +77,7 @@ func (b *BpfFeatureView) buildFeatureView(tui *Tui) {
 		}
 		return event
 	})
-	
+
 	// Run bpftool feature command and display the output (or stderr on failure)
 	stdout, stderr, err := utils.RunCmd("sudo", BpftoolPath, "feature", "probe")
 	if err != nil {

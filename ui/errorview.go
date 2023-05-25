@@ -11,7 +11,7 @@ func NewErrorView() *ErrorView {
 	e := &ErrorView{}
 	e.buildErrorView()
 	return e
-}	
+}
 
 func (e *ErrorView) buildErrorView() {
 	modal := tview.NewModal()

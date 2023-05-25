@@ -107,7 +107,6 @@ func generateRandomString(length int) string {
 	return result
 }
 
-
 func TestGetMapEntries(t *testing.T) {
 	sysfsPath := "/sys/fs/bpf"
 	mapName := generateRandomString(10)

@@ -19,51 +19,50 @@ import (
 	"github.com/rivo/tview"
 )
 
-
 var tui *Tui
 
 type CgroupProgram struct {
-	Id int `json:"id"`
-	AttachType string `json:"attach_type"`
+	Id          int    `json:"id"`
+	AttachType  string `json:"attach_type"`
 	AttachFlags string `json:"attach_flags"`
-	Name string `json:"name"`
+	Name        string `json:"name"`
 }
 
 type CgroupInfo struct {
-	Cgroup string `json:"cgroup"`
+	Cgroup   string          `json:"cgroup"`
 	Programs []CgroupProgram `json:"programs"`
 }
 
 type XdpInfo struct {
 	DevName string `json:"devname"`
-	IfIndex int `json:"ifindex"`
-	Mode string `json:"mode"`
-	Id int `json:"id"`
+	IfIndex int    `json:"ifindex"`
+	Mode    string `json:"mode"`
+	Id      int    `json:"id"`
 }
 
 type NetInfo struct {
-	Xdp []XdpInfo `json:"xdp"`
-	Tc []TcInfo `json:"tc"`
+	Xdp           []XdpInfo           `json:"xdp"`
+	Tc            []TcInfo            `json:"tc"`
 	FlowDissector []FlowDissectorInfo `json:"flow_dissector"`
 }
 
 type PerfInfo struct {
-	Pid int `json:"pid"`
-	Fd int `json:"fd"`
-	ProgId int `json:"prog_id"`
-	FdType string `json:"fd_type"`
-	Func string `json:"func",omitempty`
-	Offset int `json:"offset",omitempty`
-	Filename string `json:"filename",omitempty`
+	Pid        int    `json:"pid"`
+	Fd         int    `json:"fd"`
+	ProgId     int    `json:"prog_id"`
+	FdType     string `json:"fd_type"`
+	Func       string `json:"func",omitempty`
+	Offset     int    `json:"offset",omitempty`
+	Filename   string `json:"filename",omitempty`
 	Tracepoint string `json:"tracepoint",omitempty`
 }
 
 type BpfExplorerView struct {
-	flex *tview.Flex
+	flex        *tview.Flex
 	programList *tview.List
 	disassembly *tview.TextView
 	bpfInfoView *tview.TextView
-	mapList *tview.List
+	mapList     *tview.List
 }
 
 func applyNetData() {
@@ -155,13 +154,13 @@ func applyPerfEventData() {
 			entry.Fd = prog.Fd
 			entry.ProgType = prog.FdType
 			if prog.FdType == "kprobe" || prog.FdType == "kretprobe" {
-				entry.AttachPoint =  append(entry.AttachPoint, prog.Func)
+				entry.AttachPoint = append(entry.AttachPoint, prog.Func)
 				entry.Offset = prog.Offset
 			} else if prog.FdType == "uprobe" || prog.FdType == "uretprobe" {
-				entry.AttachPoint =  append(entry.AttachPoint, prog.Filename)
+				entry.AttachPoint = append(entry.AttachPoint, prog.Filename)
 				entry.Offset = prog.Offset
 			} else {
-				entry.AttachPoint =  append(entry.AttachPoint, prog.Tracepoint)
+				entry.AttachPoint = append(entry.AttachPoint, prog.Tracepoint)
 			}
 			//TODO: Is there a better way to do this? I want me updating entry to just update the item in Programs
 			Programs[prog.ProgId] = entry
@@ -221,7 +220,7 @@ func NewBpfExplorerView(t *Tui) *BpfExplorerView {
 	return BpfExplorerView
 }
 
-func (b* BpfExplorerView) Update() {
+func (b *BpfExplorerView) Update() {
 	for {
 		time.Sleep(3 * time.Second)
 		updateBpfPrograms()
@@ -243,7 +242,7 @@ func (b *BpfExplorerView) buildLayout() {
 		SetDirection(tview.FlexRow).
 		AddItem(b.bpfInfoView, 0, 2, false).
 		AddItem(b.mapList, 0, 1, false)
-	
+
 	// Alternate layout
 	aflex := tview.NewFlex().
 		AddItem(b.disassembly, 0, 2, false).
@@ -310,7 +309,6 @@ func (b *BpfExplorerView) buildProgramList() {
 			}
 		}
 
-
 		// Get the map info for each map used by the selected program
 		if len(selectedProgram.MapIds) > 0 {
 			mapInfo, err := utils.GetBpfMapInfoByIds(selectedProgram.MapIds)
@@ -349,11 +347,11 @@ func (b *BpfExplorerView) buildProgramList() {
 		}
 		// fmt.Println(selectedProgram.ProgType)
 		if selectedProgram.ProgType == "kprobe" ||
-		   selectedProgram.ProgType == "kretprobe" ||
-		   selectedProgram.ProgType == "tracepoint" ||
-		   selectedProgram.ProgType == "raw_tracepoint" ||
-		   selectedProgram.ProgType == "uprobe" ||
-		   selectedProgram.ProgType == "uretprobe" {
+			selectedProgram.ProgType == "kretprobe" ||
+			selectedProgram.ProgType == "tracepoint" ||
+			selectedProgram.ProgType == "raw_tracepoint" ||
+			selectedProgram.ProgType == "uprobe" ||
+			selectedProgram.ProgType == "uretprobe" {
 			// fmt.Println(selectedProgram.AttachPoint)
 			fmt.Fprintf(b.bpfInfoView, "[blue]AttachPoint:[-]\n")
 			for _, attachPoint := range selectedProgram.AttachPoint {
@@ -374,7 +372,7 @@ func (b *BpfExplorerView) buildProgramList() {
 	})
 }
 
-func (b *BpfExplorerView) buildMapList(){
+func (b *BpfExplorerView) buildMapList() {
 	b.mapList = tview.NewList()
 	b.mapList.ShowSecondaryText(false)
 	b.mapList.SetBorder(true).SetTitle("Maps")
@@ -392,7 +390,7 @@ func (b *BpfExplorerView) buildMapList(){
 				tui.DisplayError("Cannot read from a ringbuf map")
 				return
 			}
-			
+
 			err := tui.bpfMapTableView.UpdateMap(mapInfo[0])
 			if err == nil {
 				tui.pages.SwitchToPage("maptable")
@@ -424,14 +422,14 @@ func (b *BpfExplorerView) buildDisassemblyView() {
 }
 
 // Populate a tview.List with the output of GetBpfPrograms
-func populateList(list *tview.List)  {
+func populateList(list *tview.List) {
 	keys := make([]int, 0, len(Programs))
-    for k := range Programs{
-        keys = append(keys, k)
-    }
-    sort.Ints(keys)
- 
-    for _, k := range keys {
+	for k := range Programs {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
 		list.AddItem(Programs[k].String(), "", 0, nil)
-    }
+	}
 }
