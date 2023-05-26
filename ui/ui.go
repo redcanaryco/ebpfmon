@@ -43,6 +43,7 @@ type Tui struct {
 	bpfFeatureview  *BpfFeatureView
 	helpView        *HelpView
 	errorView       *ErrorView
+	logView         *LogView
 }
 
 func (t *Tui) DisplayError(err string) {
@@ -67,6 +68,8 @@ func NewTui(bpftoolPath string) *Tui {
 	tui.bpfMapTableView = NewBpfMapTableView(tui)
 	tui.helpView = NewHelpView()
 	tui.errorView = NewErrorView()
+	tui.logView = NewLogView(tui)
+	tui.logView.StartMonitor()
 
 	fmt.Println("Collecting bpf information. This may take a few seconds")
 	updateBpfPrograms()
@@ -97,6 +100,17 @@ func NewTui(bpftoolPath string) *Tui {
 
 			// Set focus to the input field
 			app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
+			return nil
+		} else if event.Key() == tcell.KeyCtrlL {
+			page, _ := pages.GetFrontPage()
+			if page != "help" {
+				previousPage = page
+			}
+
+			pages.SwitchToPage("log")
+
+			// Set focus to the input field
+			// app.SetFocus(tui.bpfFeatureview.flex.GetItem(0))
 			return nil
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			name, _ := pages.GetFrontPage()
@@ -131,6 +145,7 @@ func NewTui(bpftoolPath string) *Tui {
 	pages.AddPage("features", tui.bpfFeatureview.flex, true, false)
 	pages.AddPage("maptable", tui.bpfMapTableView.pages, true, false)
 	pages.AddPage("error", tui.errorView.modal, true, false)
+	pages.AddPage("log", tui.logView.view, true, false)
 
 	// Set starting page as previous page
 	previousPage = "programs"
