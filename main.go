@@ -15,10 +15,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // The global path to the bpftool binary

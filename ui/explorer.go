@@ -197,6 +197,7 @@ func updateBpfPrograms() {
 			}
 		}
 	}
+
 	enrichPrograms()
 	lock.Unlock()
 }
@@ -216,8 +217,6 @@ func NewBpfExplorerView(t *Tui) *BpfExplorerView {
 
 func (b *BpfExplorerView) Update() {
 	for {
-		time.Sleep(3 * time.Second)
-		updateBpfPrograms()
 		currentSelection := b.programList.GetCurrentItem()
 
 		tui.App.QueueUpdateDraw(func() {
@@ -226,6 +225,8 @@ func (b *BpfExplorerView) Update() {
 			populateList(b.programList)
 			b.programList.SetCurrentItem(currentSelection)
 		})
+		time.Sleep(3 * time.Second)
+		updateBpfPrograms()
 	}
 }
 
