@@ -4,55 +4,35 @@
 ebpfmon is a tool for monitoring [eBPF](https://ebpf.io/what-is-ebpf/) programs. It is designed to be used with [bpftool](https://github.com/libbpf/bpftool) from the linux kernel. ebpfmon is a TUI (terminal UI) application written in Go that allows you to do real-time monitoring of eBPF programs.
 
 # Installation
-Right now the only supported way to install ebpfmon is to build it from source.
+eBPFmon can be built from source or there is a compiled version of it available in the [releases](https://github.com/redcanaryco/ebpfmon/releases)
 
-## Dependencies
-First and foremost this tool is written in [Go](https://go.dev/learn/) so you will need to have that installed and in your PATH variable. It should work on go 1.18 or later although it's possible it could work on earlier versions. It just hasn't been tested
-
-Next, make sure to install the following dependencies.
-
-### Required dependencies
+## Required dependencies
 - bpftool (installed from a package manager or built from source). This is what ebpfmon uses to get information regarding eBPF programs, maps, etc
 - libelf
 - zlib
 
-### Optional (but highly recommended) dependencies
+## Optional (but highly recommended) dependencies
 - libcap-devel
 - libbfd
 
-### Optional dependencies for additional features
-- clang
-- llvm
-
-### Ubuntu 20.04+
-To install all the dependencies run the following command:
+## Ubuntu 20.04+
 ```bash
-$ sudo apt install linux-tools-`uname -r` libelf-dev zlib1g-dev libcap-dev clang llvm binutils-dev
+$ sudo apt install linux-tools-`uname -r` libelf-dev zlib1g-dev libcap-dev binutils-dev
 ```
 
-### Amazon Linux 2
-To install all the dependencies run the following command:
+## Amazon Linux 2
 ```bash
-$ sudo yum install elfutils-libelf-devel libcap-devel binutils-devel clang bpftool
+$ sudo yum install bpftool elfutils-libelf-devel libcap-devel binutils-devel
 ```
 
-### Rhel, CentOS, Fedora
-To install all the dependencies run the following command:
+## Rhel, CentOS, Fedora
 ```bash
-$ sudo dnf install elfutils-libelf-devel libcap-devel zlib-devel binutils-devel clang bpftool
+$ sudo dnf install elfutils-libelf-devel libcap-devel zlib-devel binutils-devel bpftool
 ```
 
-### Debian 11 
+## Debian 11 
 ```bash
-$ sudo apt install bpftool libelf-dev zlib1g-dev libcap-dev binutils-dev clang llvm  
-```
-
-## Building
-Simply run the following commands. This will build the `ebpfmon` binary in the current directory
-```bash
-$ git clone https://github.com/redcanaryco/ebpfmon.git
-$ cd ebpfmon
-$ make
+$ sudo apt install bpftool libelf-dev zlib1g-dev libcap-dev binutils-dev
 ```
 
 # Usage
@@ -62,6 +42,23 @@ $ ./ebpfmon
 
 NOTE: `bpftool` needs root privileges and so ebpfmon will run `sudo bpftool ...`.
 This means you will likely be prompted to enter your sudo password.
+
+
+
+# Building from source
+## Additional Dependencies
+First and foremost this tool is written in [Go](https://go.dev/learn/) so you will need to have that installed and in your PATH variable. It should work on go 1.18 or later although it's possible it could work on earlier versions. It just hasn't been tested
+
+Next, make sure to install the following dependencies.
+- clang
+- llvm
+
+Simply run the following commands. This will build the `ebpfmon` binary in the current directory
+```bash
+$ git clone https://github.com/redcanaryco/ebpfmon.git
+$ cd ebpfmon
+$ make
+```
 
 # Documentation
 ## Basic navigation
